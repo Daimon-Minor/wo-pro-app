@@ -40,6 +40,9 @@ import com.wopro.app.data.local.LogbookEntity
 import com.wopro.app.ui.VMFactory
 import com.wopro.app.ui.components.EmptyState
 import com.wopro.app.ui.theme.Green600
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -84,7 +87,7 @@ fun LogbookListScreen(
                     LogbookCard(
                         entry = e,
                         onDelete = {
-                            kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
+                            CoroutineScope(Dispatchers.IO).launch {
                                 repo.deleteLogbookEntry(e)
                             }
                         }
