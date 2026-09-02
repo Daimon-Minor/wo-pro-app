@@ -29,6 +29,19 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            // If a keystore is provided via env (CI secrets), sign with it;
+            // otherwise fall back to debug signing so the APK is always installable.
+            val ksFile = System.getenv("KEYSTORE_FILE")
+            signingConfig = if (ksFile != null && java.io.File(ksFile).exists()) {
+                signingConfigs.create("release") {
+                    storeFile = java.io.File(ksFile)
+                    storePassword = System.getenv("KEYSTORE_PASS")
+                    keyAlias = System.getenv("KEY_ALIAS")
+                    keyPassword = System.getenv("KEY_PASS")
+                }
+            } else {
+                signingConfigs.getByName("debug")
+            }
         }
         debug {
             applicationIdSuffix = ".debug"
