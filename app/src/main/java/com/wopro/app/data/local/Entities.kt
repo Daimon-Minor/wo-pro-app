@@ -124,3 +124,15 @@ data class LocationEntity(
     val name: String,
     val createdAt: Long = System.currentTimeMillis()
 )
+
+@Entity(tableName = "logbook_entries")
+data class LogbookEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val date: Long = System.currentTimeMillis(),
+    val department: String = "",
+    val location: String = "",
+    val description: String = "",
+    val photoUri: String? = null,
+    val createdBy: String = "",
+    val createdAt: Long = System.currentTimeMillis()
+)

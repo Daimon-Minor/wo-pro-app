@@ -208,3 +208,21 @@ interface LocationDao {
     @Query("SELECT COUNT(*) FROM locations")
     suspend fun countAll(): Int
 }
+
+@Dao
+interface LogbookDao {
+    @Query("SELECT * FROM logbook_entries ORDER BY date DESC, createdAt DESC")
+    fun observeAll(): Flow<List<LogbookEntity>>
+
+    @Query("SELECT * FROM logbook_entries WHERE id = :id LIMIT 1")
+    suspend fun getById(id: Long): LogbookEntity?
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insert(e: LogbookEntity): Long
+
+    @Update
+    suspend fun update(e: LogbookEntity)
+
+    @Delete
+    suspend fun delete(e: LogbookEntity)
+}

@@ -24,6 +24,8 @@ object Routes {
     const val NOTIFICATIONS = "notifications"
     const val REPORTS = "reports"
     const val LOCATIONS = "locations"
+    const val LOGBOOK_LIST = "logbook_list"
+    const val LOGBOOK_FORM = "logbook_form?entryId={entryId}"
 
     fun woForm(woId: Long? = null) = "wo_form?woId=${woId ?: 0}"
     fun woDetail(woId: Long) = "wo_detail/$woId"
@@ -32,6 +34,7 @@ object Routes {
     fun auditForm(reportId: Long? = null) = "audit_form?reportId=${reportId ?: 0}"
     fun meterForm(meterType: String? = null) = "meter_form?meterType=${meterType ?: ""}"
     fun teamForm(teamId: Long? = null) = "teams_form?teamId=${teamId ?: 0}"
+    fun logbookForm(entryId: Long? = null) = "logbook_form?entryId=${entryId ?: 0}"
 }
 
 /** Bottom navigation tabs inside Main. */

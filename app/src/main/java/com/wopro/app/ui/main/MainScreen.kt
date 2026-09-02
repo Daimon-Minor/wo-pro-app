@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Assessment
+import androidx.compose.material.icons.filled.Book
 import androidx.compose.material.icons.filled.Chat
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.MoreVert
@@ -90,10 +91,11 @@ fun MainScreen(onNavTo: (String) -> Unit, onLogout: () -> Unit) {
                 )
                 Tabs.MORE -> MoreMenu(
                     onProjects = { onNavTo("project_list") },
+                    onLogbook = { onNavTo("logbook_list") },
+                    onReports = { onNavTo("reports") },
                     onAiChat = { onNavTo("ai_chat") },
                     onSettings = { onNavTo("settings") },
-                    onTeams = { onNavTo("teams_list") },
-                    onReports = { onNavTo("reports") }
+                    onTeams = { onNavTo("teams_list") }
                 )
             }
         }
@@ -103,13 +105,15 @@ fun MainScreen(onNavTo: (String) -> Unit, onLogout: () -> Unit) {
 @Composable
 private fun MoreMenu(
     onProjects: () -> Unit,
+    onLogbook: () -> Unit,
+    onReports: () -> Unit,
     onAiChat: () -> Unit,
     onSettings: () -> Unit,
-    onTeams: () -> Unit,
-    onReports: () -> Unit
+    onTeams: () -> Unit
 ) {
     Column(Modifier.fillMaxSize().padding(top = 24.dp)) {
         listOf(
+            MenuItem("Logbook", "Catat pekerjaan harian & riwayat", Icons.Default.Book, onLogbook),
             MenuItem("Projects", "Capital projects & maintenance plans", Icons.Default.Work, onProjects),
             MenuItem("Reports", "Export CSV & filter laporan", Icons.Default.Assessment, onReports),
             MenuItem("AI Assistant", "Ask about procedures & energy tips", Icons.Default.Chat, onAiChat),

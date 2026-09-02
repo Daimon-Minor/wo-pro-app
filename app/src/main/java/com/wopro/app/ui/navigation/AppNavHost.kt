@@ -34,6 +34,8 @@ import com.wopro.app.ui.team.TeamFormScreen
 import com.wopro.app.ui.notification.NotificationsScreen
 import com.wopro.app.ui.report.ReportsScreen
 import com.wopro.app.ui.location.ManageLocationsScreen
+import com.wopro.app.ui.logbook.LogbookListScreen
+import com.wopro.app.ui.logbook.LogbookFormScreen
 
 @Composable
 fun AppNavHost() {
@@ -106,6 +108,26 @@ fun AppNavHost() {
         composable(Routes.REPORTS) {
             ReportsScreen(
                 factory = vmFactory,
+                onBack = { navController.popBackStack() }
+            )
+        }
+
+        // ---- Logbook ----
+        composable(Routes.LOGBOOK_LIST) {
+            LogbookListScreen(
+                factory = vmFactory,
+                onNew = { navController.navigate(Routes.logbookForm()) },
+                onBack = { navController.popBackStack() }
+            )
+        }
+        composable(
+            route = "logbook_form?entryId={entryId}",
+            arguments = listOf(navArgument("entryId") { type = NavType.LongType; defaultValue = 0L })
+        ) { entry ->
+            LogbookFormScreen(
+                entryId = entry.arguments?.getLong("entryId") ?: 0L,
+                factory = vmFactory,
+                onSaved = { navController.popBackStack() },
                 onBack = { navController.popBackStack() }
             )
         }

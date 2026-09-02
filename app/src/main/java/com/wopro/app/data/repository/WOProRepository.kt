@@ -5,6 +5,7 @@ import com.wopro.app.data.local.AuditItemEntity
 import com.wopro.app.data.local.AuditReportEntity
 import com.wopro.app.data.local.ChatMessageEntity
 import com.wopro.app.data.local.LocationEntity
+import com.wopro.app.data.local.LogbookEntity
 import com.wopro.app.data.local.MeterReadingEntity
 import com.wopro.app.data.local.NotificationEntity
 import com.wopro.app.data.local.ProjectEntity
@@ -215,6 +216,14 @@ class WOProRepository(private val db: AppDatabase) {
         return db.locationDao().insert(LocationEntity(name = trimmed))
     }
     suspend fun deleteLocation(l: LocationEntity) = db.locationDao().delete(l)
+
+    // ---- Logbook ----
+    fun observeLogbook(): Flow<List<LogbookEntity>> = db.logbookDao().observeAll()
+    suspend fun getLogbookEntry(id: Long): LogbookEntity? = db.logbookDao().getById(id)
+    suspend fun saveLogbookEntry(e: LogbookEntity) {
+        if (e.id == 0L) db.logbookDao().insert(e) else db.logbookDao().update(e)
+    }
+    suspend fun deleteLogbookEntry(e: LogbookEntity) = db.logbookDao().delete(e)
 
     // ---- Notifications ----
     fun observeNotifications(): Flow<List<NotificationEntity>> = db.notificationDao().observeAll()
