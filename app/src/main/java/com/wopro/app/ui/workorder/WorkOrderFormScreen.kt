@@ -52,6 +52,7 @@ import com.wopro.app.ui.components.LoadingBox
 import com.wopro.app.ui.components.rememberCameraLauncher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 /** Lokasi preset yang bisa dipilih user saat membuat work order. */
