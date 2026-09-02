@@ -143,5 +143,6 @@ class AuthViewModel(
 
     fun logout() {
         encryption.clearSession()
+        _ui.value = AuthUiState()
     }
 }

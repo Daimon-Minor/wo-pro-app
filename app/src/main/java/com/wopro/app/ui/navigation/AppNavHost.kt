@@ -91,7 +91,7 @@ fun AppNavHost() {
                 onLogout = {
                     authVm.logout()
                     navController.navigate(Routes.LOGIN) {
-                        popUpTo(0) { inclusive = true }
+                        popUpTo(Routes.MAIN) { inclusive = true }
                     }
                 }
             )
@@ -288,7 +288,7 @@ fun AppNavHost() {
                 onLogout = {
                     authVm.logout()
                     navController.navigate(Routes.LOGIN) {
-                        popUpTo(0) { inclusive = true }
+                        popUpTo(Routes.MAIN) { inclusive = true }
                     }
                 },
                 onBack = { navController.popBackStack() },

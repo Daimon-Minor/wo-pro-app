@@ -48,6 +48,8 @@ import com.wopro.app.WOProApp
 import com.wopro.app.data.local.BlockEntity
 import com.wopro.app.ui.VMFactory
 import com.wopro.app.ui.components.EmptyState
+import com.wopro.app.ui.components.LoadingBox
+import com.wopro.app.ui.location.AdminOnlyNotice
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -69,6 +71,17 @@ fun ManageBlocksScreen(
     var showDialog by remember { mutableStateOf(false) }
     var editBlock by remember { mutableStateOf<BlockEntity?>(null) }
 
+    // Hanya admin yang boleh akses
+    val app = context.applicationContext as WOProApp
+    var checked by remember { mutableStateOf(false) }
+    var isAdmin by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) {
+        val id = app.container.encryptionManager.getUserId()
+        val user = if (id > 0) kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { repo.getUser(id) } else null
+        isAdmin = user?.role.equals("Admin", ignoreCase = true)
+        checked = true
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -77,19 +90,27 @@ fun ManageBlocksScreen(
             )
         },
         floatingActionButton = {
-            FloatingActionButton(onClick = { editBlock = null; showDialog = true }) {
-                Icon(Icons.Default.Add, "Tambah Blok")
+            if (isAdmin) {
+                FloatingActionButton(onClick = { editBlock = null; showDialog = true }) {
+                    Icon(Icons.Default.Add, "Tambah Blok")
+                }
             }
         }
     ) { padding ->
-        if (blocks.isEmpty()) {
-            EmptyState("Belum ada blok. Tap + untuk tambah blok dengan L1/L2/L3 range.", Modifier.fillMaxSize().padding(padding))
-        } else {
-            LazyColumn(Modifier.fillMaxSize().padding(padding), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                items(blocks, key = { it.id }) { b ->
-                    BlockCard(b, onEdit = { editBlock = b; showDialog = true }, onDelete = {
-                        CoroutineScope(Dispatchers.IO).launch { repo.deleteBlock(b) }
-                    })
+        when {
+            !checked -> LoadingBox(Modifier.fillMaxSize().padding(padding))
+            !isAdmin -> AdminOnlyNotice(onBack, Modifier.fillMaxSize().padding(padding))
+            else -> {
+                if (blocks.isEmpty()) {
+                    EmptyState("Belum ada blok. Tap + untuk tambah blok dengan L1/L2/L3 range.", Modifier.fillMaxSize().padding(padding))
+                } else {
+                    LazyColumn(Modifier.fillMaxSize().padding(padding), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        items(blocks, key = { it.id }) { b ->
+                            BlockCard(b, onEdit = { editBlock = b; showDialog = true }, onDelete = {
+                                CoroutineScope(Dispatchers.IO).launch { repo.deleteBlock(b) }
+                            })
+                        }
+                    }
                 }
             }
         }
