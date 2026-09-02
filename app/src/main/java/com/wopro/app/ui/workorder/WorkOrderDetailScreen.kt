@@ -49,6 +49,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -98,11 +99,13 @@ fun WorkOrderDetailScreen(
 
     var showPendingDialog by remember { mutableStateOf(false) }
     var pendingReason by remember { mutableStateOf("") }
+    val scope = rememberCoroutineScope()
 
     val donePhotoPicker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
-        if (uri != null && wo != null) {
-            CoroutineScope(Dispatchers.IO).launch {
-                repo.setDone(wo!!, uri.toString())
+        val current = wo
+        if (uri != null && current != null) {
+            scope.launch {
+                repo.setDone(current, uri.toString())
                 wo = repo.getWorkOrder(woId)
             }
         }
@@ -110,9 +113,10 @@ fun WorkOrderDetailScreen(
 
     // Kamera untuk foto bukti selesai (permission otomatis diminta)
     val doneCamera = rememberCameraLauncher { uri ->
-        if (wo != null) {
-            CoroutineScope(Dispatchers.IO).launch {
-                repo.setDone(wo!!, uri)
+        val current = wo
+        if (current != null) {
+            scope.launch {
+                repo.setDone(current, uri)
                 wo = repo.getWorkOrder(woId)
             }
         }
@@ -239,8 +243,9 @@ fun WorkOrderDetailScreen(
                     Spacer(Modifier.height(6.dp))
                     Button(
                         onClick = {
-                            CoroutineScope(Dispatchers.IO).launch {
-                                repo.acceptWorkOrder(item, currentUserName.ifBlank { "User" })
+                            val current = item
+                            scope.launch {
+                                repo.acceptWorkOrder(current, currentUserName.ifBlank { "User" })
                                 wo = repo.getWorkOrder(woId)
                             }
                         },
@@ -288,8 +293,9 @@ fun WorkOrderDetailScreen(
                     Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
                         OutlinedButton(
                             onClick = {
-                                CoroutineScope(Dispatchers.IO).launch {
-                                    repo.resumeWorkOrder(item)
+                                val current = item
+                                scope.launch {
+                                    repo.resumeWorkOrder(current)
                                     wo = repo.getWorkOrder(woId)
                                 }
                             },
@@ -355,13 +361,17 @@ fun WorkOrderDetailScreen(
             confirmButton = {
                 TextButton(
                     onClick = {
-                        if (pendingReason.isNotBlank()) {
+                        val reason = pendingReason.trim()
+                        if (reason.isNotBlank()) {
                             showPendingDialog = false
-                            CoroutineScope(Dispatchers.IO).launch {
-                                repo.setPending(wo!!, pendingReason.trim())
-                                wo = repo.getWorkOrder(woId)
-                            }
                             pendingReason = ""
+                            val current = wo
+                            if (current != null) {
+                                scope.launch {
+                                    repo.setPending(current, reason)
+                                    wo = repo.getWorkOrder(woId)
+                                }
+                            }
                         }
                     },
                     enabled = pendingReason.isNotBlank()
