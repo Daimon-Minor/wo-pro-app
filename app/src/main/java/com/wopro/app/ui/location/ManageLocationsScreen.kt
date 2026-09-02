@@ -87,11 +87,12 @@ fun ManageLocationsScreen(
         floatingActionButton = {
             if (isAdmin) {
                 FloatingActionButton(onClick = {
-                    if (newName.isNotBlank()) {
-                        CoroutineScope(Dispatchers.IO).launch {
-                            repo.addLocation(newName)
-                        }
+                    val name = newName.trim()
+                    if (name.isNotBlank()) {
                         newName = ""
+                        CoroutineScope(Dispatchers.IO).launch {
+                            repo.addLocation(name)
+                        }
                     }
                 }) { Icon(Icons.Default.Add, "Tambah Lokasi") }
             }

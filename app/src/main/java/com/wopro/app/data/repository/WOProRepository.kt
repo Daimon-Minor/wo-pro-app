@@ -124,7 +124,7 @@ class WOProRepository(private val db: AppDatabase) {
     /** Riwayat work order untuk kamar tertentu. */
     suspend fun getRoomHistory(block: String, room: Int): List<WorkOrderEntity> {
         if (room <= 0 || block.isBlank()) return emptyList()
-        return db.workOrderDao().listByRoom(block.trim().uppercase(), room)
+        return db.workOrderDao().listByRoom(block.trim(), room)
     }
 
     /**

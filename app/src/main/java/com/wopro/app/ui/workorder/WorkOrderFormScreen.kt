@@ -37,13 +37,13 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.wopro.app.WOProApp
 import com.wopro.app.data.local.WorkOrderEntity
@@ -71,7 +71,6 @@ fun WorkOrderFormScreen(
     val context = LocalContext.current
     val app = context.applicationContext as WOProApp
     val repo = app.container.repository
-    val vm: WorkOrderFormViewModel = viewModel(factory = factory)
     var title by remember { mutableStateOf("") }
     var category by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
@@ -250,9 +249,10 @@ fun WorkOrderFormScreen(
                 }
             }
             Spacer(Modifier.height(16.dp))
+            val scope = rememberCoroutineScope()
             Button(
                 onClick = {
-                    vm.save(WorkOrderEntity(
+                    val wo = WorkOrderEntity(
                         id = woId,
                         title = title, category = category,
                         description = description, location = location,
@@ -261,8 +261,11 @@ fun WorkOrderFormScreen(
                         roomNumber = roomNumber.toIntOrNull() ?: 0,
                         photoUri = photoUri,
                         createdBy = currentUserName
-                    ))
-                    onSaved()
+                    )
+                    scope.launch {
+                        repo.saveWorkOrder(wo)
+                        onSaved()
+                    }
                 },
                 modifier = Modifier.fillMaxWidth().height(52.dp),
                 enabled = title.isNotBlank()

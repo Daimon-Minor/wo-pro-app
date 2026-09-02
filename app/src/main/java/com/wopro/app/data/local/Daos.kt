@@ -49,7 +49,7 @@ interface WorkOrderDao {
     @Query("SELECT * FROM work_orders ORDER BY updatedAt DESC")
     suspend fun listAll(): List<WorkOrderEntity>
 
-    @Query("SELECT * FROM work_orders WHERE block = :block AND roomNumber = :room ORDER BY createdAt DESC")
+    @Query("SELECT * FROM work_orders WHERE lower(block) = lower(:block) AND roomNumber = :room ORDER BY createdAt DESC")
     suspend fun listByRoom(block: String, room: Int): List<WorkOrderEntity>
 
     @Query("SELECT COUNT(*) FROM work_orders WHERE status = :status")
