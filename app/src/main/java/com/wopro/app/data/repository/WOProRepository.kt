@@ -49,10 +49,10 @@ class WOProRepository(private val db: AppDatabase) {
         val block = wo.block.trim().uppercase()
         val teams = db.teamDao().observeAll()
         // observeAll() is a Flow; get the current value via first()
-        val current = kotlinx.coroutines.flow.first(teams)
+        val current = teams.first()
         val team = current.firstOrNull { t ->
             t.block.equals(block, ignoreCase = true) &&
-                wo.roomNumber in t.roomStart..t.roomEnd
+                wo.roomNumber >= t.roomStart && wo.roomNumber <= t.roomEnd
         } ?: return
         addNotification(
             NotificationEntity(
