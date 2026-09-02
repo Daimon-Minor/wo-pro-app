@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
+import androidx.compose.material.icons.filled.Assessment
 import androidx.compose.material.icons.filled.Chat
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.MoreVert
@@ -73,22 +74,26 @@ fun MainScreen(onNavTo: (String) -> Unit, onLogout: () -> Unit) {
                 Tabs.WOS -> WorkOrderListScreen(
                     factory = factory,
                     onNew = { onNavTo("wo_form") },
-                    onDetail = { id -> onNavTo("wo_detail/$id") }
+                    onDetail = { id -> onNavTo("wo_detail/$id") },
+                    onBack = { selectedTab = Tabs.HOME }
                 )
                 Tabs.AUDIT -> AuditListScreen(
                     factory = factory,
                     onNew = { onNavTo("audit_form") },
-                    onDetail = { id -> onNavTo("audit_form?reportId=$id") }
+                    onDetail = { id -> onNavTo("audit_form?reportId=$id") },
+                    onBack = { selectedTab = Tabs.HOME }
                 )
                 Tabs.METERS -> MeterListScreen(
                     factory = factory,
-                    onNew = { type -> onNavTo("meter_form?meterType=$type") }
+                    onNew = { type -> onNavTo("meter_form?meterType=$type") },
+                    onBack = { selectedTab = Tabs.HOME }
                 )
                 Tabs.MORE -> MoreMenu(
                     onProjects = { onNavTo("project_list") },
                     onAiChat = { onNavTo("ai_chat") },
                     onSettings = { onNavTo("settings") },
-                    onTeams = { onNavTo("teams_list") }
+                    onTeams = { onNavTo("teams_list") },
+                    onReports = { onNavTo("reports") }
                 )
             }
         }
@@ -96,10 +101,17 @@ fun MainScreen(onNavTo: (String) -> Unit, onLogout: () -> Unit) {
 }
 
 @Composable
-private fun MoreMenu(onProjects: () -> Unit, onAiChat: () -> Unit, onSettings: () -> Unit, onTeams: () -> Unit) {
+private fun MoreMenu(
+    onProjects: () -> Unit,
+    onAiChat: () -> Unit,
+    onSettings: () -> Unit,
+    onTeams: () -> Unit,
+    onReports: () -> Unit
+) {
     Column(Modifier.fillMaxSize().padding(top = 24.dp)) {
         listOf(
             MenuItem("Projects", "Capital projects & maintenance plans", Icons.Default.Work, onProjects),
+            MenuItem("Reports", "Export CSV & filter laporan", Icons.Default.Assessment, onReports),
             MenuItem("AI Assistant", "Ask about procedures & energy tips", Icons.Default.Chat, onAiChat),
             MenuItem("Teams", "Manage team & room assignments", Icons.Default.Work, onTeams),
             MenuItem("Settings", "Profile, security & data", Icons.Default.Settings, onSettings)

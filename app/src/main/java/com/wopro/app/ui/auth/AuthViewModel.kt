@@ -38,12 +38,21 @@ class AuthViewModel(
             }
             _ui.value = AuthUiState(isLoading = true)
             val normalized = email.trim().lowercase()
-            val user = repo.findUserByEmail(normalized)
+            // Support login by username (tanpa @) — cari berdasarkan nama
+            var user = if (normalized.contains("@")) {
+                repo.findUserByEmail(normalized)
+            } else {
+                repo.findUserByName(normalized)
+            }
+            // Fallback: coba cari dengan email "admin" untuk super user
+            if (user == null && normalized == "admin") {
+                user = repo.findUserByEmail("admin")
+            }
             if (user == null) {
                 _ui.value = AuthUiState(error = "Account not found. Please register first.")
-            } else if (!encryption.hasPassword(normalized)) {
+            } else if (!encryption.hasPassword(user.email)) {
                 _ui.value = AuthUiState(error = "No password set for this account. Use Forgot Password.")
-            } else if (!encryption.verifyPassword(normalized, password)) {
+            } else if (!encryption.verifyPassword(user.email, password)) {
                 _ui.value = AuthUiState(error = "Incorrect password. Try again.")
             } else {
                 encryption.saveAuthToken("demo-${System.currentTimeMillis()}")

@@ -11,12 +11,14 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -45,13 +47,23 @@ class AuditViewModel(repo: com.wopro.app.data.repository.WOProRepository) : andr
 fun AuditListScreen(
     factory: VMFactory,
     onNew: () -> Unit,
-    onDetail: (Long) -> Unit
+    onDetail: (Long) -> Unit,
+    onBack: (() -> Unit)? = null
 ) {
     val vm: AuditViewModel = viewModel(factory = factory)
     val reports by vm.ui.collectAsStateWithLifecycle(initialValue = emptyList())
 
     Scaffold(
-        topBar = { TopAppBar(title = { Text("Audit Reports", fontWeight = FontWeight.Bold) }) },
+        topBar = {
+            TopAppBar(
+                title = { Text("Audit Reports", fontWeight = FontWeight.Bold) },
+                navigationIcon = {
+                    if (onBack != null) {
+                        IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back") }
+                    }
+                }
+            )
+        },
         floatingActionButton = { FloatingActionButton(onClick = onNew) { Icon(Icons.Default.Add, "New Audit") } }
     ) { padding ->
         if (reports.isEmpty()) EmptyState("No audit reports yet", Modifier.fillMaxSize().padding(padding))

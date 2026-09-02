@@ -21,47 +21,123 @@ class WOProRepository(private val db: AppDatabase) {
 
     // ---- Users / Auth (demo) ----
     suspend fun findUserByEmail(email: String): UserEntity? = db.userDao().getByEmail(email)
+    suspend fun findUserByName(name: String): UserEntity? = db.userDao().getByName(name)
+    fun observeUsers(): Flow<List<UserEntity>> = db.userDao().observeAll()
+    suspend fun countUsers(): Int = db.userDao().countAll()
     suspend fun createUser(user: UserEntity): Long = db.userDao().insert(user)
     suspend fun getUser(id: Long): UserEntity? = db.userDao().getById(id)
+
+    /**
+     * Seed super user (admin / admin) on first launch. Idempotent.
+     */
+    suspend fun seedAdminUser() {
+        if (db.userDao().getByEmail(ADMIN_EMAIL) == null) {
+            db.userDao().insert(
+                UserEntity(name = "Admin", email = ADMIN_EMAIL, role = "Admin")
+            )
+        }
+    }
 
     // ---- Work Orders ----
     fun observeWorkOrders(): Flow<List<WorkOrderEntity>> = db.workOrderDao().observeAll()
     fun observeWorkOrders(status: String): Flow<List<WorkOrderEntity>> = db.workOrderDao().observeByStatus(status)
     suspend fun getWorkOrder(id: Long): WorkOrderEntity? = db.workOrderDao().getById(id)
+
     suspend fun saveWorkOrder(wo: WorkOrderEntity) {
         if (wo.id == 0L) {
-            val id = db.workOrderDao().insert(wo)
-            notifyForWorkOrder(wo.copy(id = id))
+            val assignedTeamId = findTeamIdFor(wo.block, wo.roomNumber)
+            val id = db.workOrderDao().insert(wo.copy(assignedTeamId = assignedTeamId))
+            notifyForWorkOrder(wo.copy(id = id, assignedTeamId = assignedTeamId))
         } else {
             db.workOrderDao().update(wo)
         }
     }
+
     suspend fun deleteWorkOrder(wo: WorkOrderEntity) = db.workOrderDao().delete(wo)
     suspend fun countWorkOrders(status: String): Int = db.workOrderDao().countByStatus(status)
     suspend fun countAllWorkOrders(): Int = db.workOrderDao().countAll()
 
+    // ---- Alur kerja status ----
+    suspend fun acceptWorkOrder(wo: WorkOrderEntity, byName: String) {
+        val now = System.currentTimeMillis()
+        db.workOrderDao().update(
+            wo.copy(status = "Accepted", acceptedBy = byName, acceptedAt = now, updatedAt = now)
+        )
+    }
+
+    suspend fun setPending(wo: WorkOrderEntity, reason: String) {
+        val now = System.currentTimeMillis()
+        db.workOrderDao().update(
+            wo.copy(status = "Pending", pendingReason = reason, updatedAt = now)
+        )
+    }
+
+    suspend fun setDone(wo: WorkOrderEntity, photoUri: String?) {
+        val now = System.currentTimeMillis()
+        db.workOrderDao().update(
+            wo.copy(status = "Done", donePhotoUri = photoUri, doneAt = now, updatedAt = now)
+        )
+    }
+
+    suspend fun resumeWorkOrder(wo: WorkOrderEntity) {
+        val now = System.currentTimeMillis()
+        db.workOrderDao().update(wo.copy(status = "Accepted", updatedAt = now))
+    }
+
+    // ---- Export laporan ----
+    suspend fun exportWorkOrders(status: String? = null, room: Int = 0): List<WorkOrderEntity> {
+        val all = if (status == null || status == "All") {
+            db.workOrderDao().listAll()
+        } else {
+            db.workOrderDao().listByStatus(status)
+        }
+        return if (room > 0) all.filter { it.roomNumber == room } else all
+    }
+
     /**
-     * When a work order is created with a block + room range, check whether any
-     * team covers that block/room and create a notification for it.
+     * Assign team & push notification to every member whose team covers the
+     * block + room range. Works offline (local DB).
      */
     private suspend fun notifyForWorkOrder(wo: WorkOrderEntity) {
         if (wo.block.isBlank()) return
         val block = wo.block.trim().uppercase()
-        val teams = db.teamDao().observeAll()
-        // observeAll() is a Flow; get the current value via first()
-        val current = teams.first()
-        val team = current.firstOrNull { t ->
+        val teams = db.teamDao().observeAll().first()
+        val team = teams.firstOrNull { t ->
             t.block.equals(block, ignoreCase = true) &&
                 wo.roomNumber >= t.roomStart && wo.roomNumber <= t.roomEnd
         } ?: return
-        addNotification(
-            NotificationEntity(
-                title = "Tugas Baru: ${wo.title}",
-                body = "Tim ${team.name} (Blok $block) menerima work order ruang $block-${wo.roomNumber}.",
-                teamName = team.name,
-                woId = wo.id
+
+        val members = team.memberEmails.split(",")
+            .map { it.trim() }
+            .filter { it.isNotBlank() }
+
+        val title = "Tugas Baru: ${wo.title}"
+        val body = "Tim ${team.name} (Blok $block) menerima work order ruang $block-${wo.roomNumber}."
+        if (members.isEmpty()) {
+            addNotification(
+                NotificationEntity(title = title, body = body, teamName = team.name, woId = wo.id)
             )
-        )
+        } else {
+            members.forEach { email ->
+                addNotification(
+                    NotificationEntity(
+                        title = title,
+                        body = body,
+                        teamName = team.name,
+                        woId = wo.id,
+                        targetEmail = email
+                    )
+                )
+            }
+        }
+    }
+
+    private suspend fun findTeamIdFor(block: String, room: Int): Long {
+        if (block.isBlank() || room <= 0) return 0
+        val b = block.trim().uppercase()
+        return db.teamDao().observeAll().first()
+            .firstOrNull { t -> t.block.equals(b, ignoreCase = true) && room >= t.roomStart && room <= t.roomEnd }
+            ?.id ?: 0
     }
 
     // ---- Projects ----
@@ -113,9 +189,13 @@ class WOProRepository(private val db: AppDatabase) {
 
     // ---- Notifications ----
     fun observeNotifications(): Flow<List<NotificationEntity>> = db.notificationDao().observeAll()
-    fun observeUnreadCount(): Flow<Int> = db.notificationDao().observeUnreadCount()
+    fun observeUnread(): Flow<List<NotificationEntity>> = db.notificationDao().observeUnread()
     suspend fun addNotification(n: NotificationEntity): Long = db.notificationDao().insert(n)
     suspend fun markNotificationRead(id: Long) = db.notificationDao().markRead(id)
     suspend fun markAllNotificationsRead() = db.notificationDao().markAllRead()
     suspend fun clearNotifications() = db.notificationDao().clear()
+
+    companion object {
+        const val ADMIN_EMAIL = "admin"
+    }
 }

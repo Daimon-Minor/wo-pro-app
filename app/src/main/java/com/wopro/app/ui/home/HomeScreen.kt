@@ -119,14 +119,14 @@ fun HomeScreen(
                 return@LazyColumn
             }
 
-            // Stat cards
+            // Stat cards — 4 cards in 2 rows
             item {
                 Row(
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     StatCard("Open", ui.openCount, Amber400, Modifier.weight(1f))
-                    StatCard("In Progress", ui.inProgressCount, MaterialTheme.colorScheme.primary, Modifier.weight(1f))
+                    StatCard("Accepted", ui.acceptedCount, MaterialTheme.colorScheme.primary, Modifier.weight(1f))
                 }
             }
             item {
@@ -134,8 +134,8 @@ fun HomeScreen(
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    StatCard("Completed", ui.completedCount, Green600, Modifier.weight(1f))
-                    StatCard("Overdue", ui.overdueCount, Red500, Modifier.weight(1f))
+                    StatCard("Pending", ui.pendingCount, colorForStatus("Pending"), Modifier.weight(1f))
+                    StatCard("Done", ui.doneCount, Green600, Modifier.weight(1f))
                 }
             }
 
@@ -260,10 +260,19 @@ private fun RecentWoRow(wo: WorkOrderEntity, onClick: () -> Unit) {
 
 @Composable
 fun statusColor(status: String): Color = when (status) {
-    "Completed" -> Green600
-    "In Progress" -> MaterialTheme.colorScheme.primary
-    "Overdue" -> Red500
+    "Done" -> Green600
+    "Accepted" -> MaterialTheme.colorScheme.primary
+    "Pending" -> Amber400
     "Open" -> Amber400
+    else -> MaterialTheme.colorScheme.outline
+}
+
+@Composable
+fun colorForStatus(status: String): Color = when (status) {
+    "Pending" -> Amber400
+    "Open" -> Amber400
+    "Accepted" -> MaterialTheme.colorScheme.primary
+    "Done" -> Green600
     else -> MaterialTheme.colorScheme.outline
 }
 

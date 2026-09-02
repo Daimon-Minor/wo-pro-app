@@ -104,6 +104,14 @@ private fun TeamCard(team: TeamEntity, onClick: () -> Unit, onDelete: () -> Unit
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.outline
                 )
+                val memberCount = team.memberEmails.split(",").count { it.isNotBlank() }
+                if (memberCount > 0) {
+                    Text(
+                        "$memberCount anggota",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
             }
             IconButton(onClick = onDelete) {
                 Icon(Icons.Default.Delete, contentDescription = "Hapus", tint = MaterialTheme.colorScheme.error)

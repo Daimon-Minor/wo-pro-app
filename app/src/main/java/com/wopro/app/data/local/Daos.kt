@@ -13,8 +13,17 @@ interface UserDao {
     @Query("SELECT * FROM users WHERE email = :email LIMIT 1")
     suspend fun getByEmail(email: String): UserEntity?
 
+    @Query("SELECT * FROM users WHERE lower(name) = lower(:name) LIMIT 1")
+    suspend fun getByName(name: String): UserEntity?
+
     @Query("SELECT * FROM users WHERE id = :id LIMIT 1")
     suspend fun getById(id: Long): UserEntity?
+
+    @Query("SELECT * FROM users ORDER BY name ASC")
+    fun observeAll(): Flow<List<UserEntity>>
+
+    @Query("SELECT COUNT(*) FROM users")
+    suspend fun countAll(): Int
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(user: UserEntity): Long
@@ -33,6 +42,12 @@ interface WorkOrderDao {
 
     @Query("SELECT * FROM work_orders WHERE status = :status ORDER BY updatedAt DESC")
     fun observeByStatus(status: String): Flow<List<WorkOrderEntity>>
+
+    @Query("SELECT * FROM work_orders WHERE status = :status")
+    suspend fun listByStatus(status: String): List<WorkOrderEntity>
+
+    @Query("SELECT * FROM work_orders ORDER BY updatedAt DESC")
+    suspend fun listAll(): List<WorkOrderEntity>
 
     @Query("SELECT COUNT(*) FROM work_orders WHERE status = :status")
     suspend fun countByStatus(status: String): Int

@@ -21,7 +21,7 @@ data class WorkOrderEntity(
     val description: String = "",
     val category: String,
     val priority: String = "Medium", // Low / Medium / High / Critical
-    val status: String = "Open",     // Open / In Progress / Completed / Overdue
+    val status: String = "Open",     // Open / Accepted / Pending / Done
     val location: String = "",
     val assignedTo: String = "",
     val block: String = "",
@@ -30,7 +30,14 @@ data class WorkOrderEntity(
     val photoUri: String? = null,
     val createdBy: String = "",
     val createdAt: Long = System.currentTimeMillis(),
-    val updatedAt: Long = System.currentTimeMillis()
+    val updatedAt: Long = System.currentTimeMillis(),
+    // Fitur alur kerja: tim + status lanjutan
+    val assignedTeamId: Long = 0,
+    val acceptedBy: String = "",
+    val acceptedAt: Long? = null,
+    val pendingReason: String = "",
+    val donePhotoUri: String? = null,
+    val doneAt: Long? = null
 )
 
 @Entity(tableName = "projects")
@@ -95,6 +102,7 @@ data class TeamEntity(
     val block: String,          // e.g. "A", "B", "C"
     val roomStart: Int,         // e.g. 1
     val roomEnd: Int,           // e.g. 60
+    val memberEmails: String = "",  // anggota tim, dipisah koma (email user)
     val createdAt: Long = System.currentTimeMillis()
 )
 
@@ -105,6 +113,7 @@ data class NotificationEntity(
     val body: String,
     val teamName: String = "",
     val woId: Long = 0,
+    val targetEmail: String = "",   // "" = untuk semua; selain itu untuk user tertentu
     val read: Boolean = false,
     val createdAt: Long = System.currentTimeMillis()
 )

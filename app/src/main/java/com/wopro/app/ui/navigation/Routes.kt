@@ -22,6 +22,7 @@ object Routes {
     const val TEAMS_LIST = "teams_list"
     const val TEAMS_FORM = "teams_form?teamId={teamId}"
     const val NOTIFICATIONS = "notifications"
+    const val REPORTS = "reports"
 
     fun woForm(woId: Long? = null) = "wo_form?woId=${woId ?: 0}"
     fun woDetail(woId: Long) = "wo_detail/$woId"

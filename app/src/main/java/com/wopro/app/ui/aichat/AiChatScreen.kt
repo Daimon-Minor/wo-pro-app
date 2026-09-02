@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Send
 import androidx.compose.material3.Card
@@ -71,7 +72,7 @@ class AiChatViewModel(repo: com.wopro.app.data.repository.WOProRepository) : and
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AiChatScreen(factory: VMFactory) {
+fun AiChatScreen(factory: VMFactory, onBack: (() -> Unit)? = null) {
     val vm: AiChatViewModel = viewModel(factory = factory)
     val messages by vm.ui.collectAsStateWithLifecycle(initialValue = emptyList())
     var input by remember { mutableStateOf("") }
@@ -80,9 +81,14 @@ fun AiChatScreen(factory: VMFactory) {
         topBar = {
             TopAppBar(
                 title = { Text("AI Assistant", fontWeight = FontWeight.Bold) },
+                navigationIcon = {
+                    if (onBack != null) {
+                        IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back") }
+                    }
+                },
                 actions = {
                     IconButton(onClick = { vm.clearChat() }) {
-                        Icon(Icons.Default.Delete, "Clear — but icon placeholder")
+                        Icon(Icons.Default.Delete, "Clear chat")
                     }
                 }
             )

@@ -12,12 +12,14 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -42,14 +44,24 @@ class MeterViewModel(repo: com.wopro.app.data.repository.WOProRepository) : andr
 @Composable
 fun MeterListScreen(
     factory: VMFactory,
-    onNew: (String) -> Unit
+    onNew: (String) -> Unit,
+    onBack: (() -> Unit)? = null
 ) {
     val vm: MeterViewModel = viewModel(factory = factory)
     val meters by vm.ui.collectAsStateWithLifecycle(initialValue = emptyList())
     val types = listOf("Chiller", "Freezer", "Heat Pump", "Water Tank", "Fuel", "Gas", "KWH")
 
     Scaffold(
-        topBar = { TopAppBar(title = { Text("Utility Meters", fontWeight = FontWeight.Bold) }) }
+        topBar = {
+            TopAppBar(
+                title = { Text("Utility Meters", fontWeight = FontWeight.Bold) },
+                navigationIcon = {
+                    if (onBack != null) {
+                        IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back") }
+                    }
+                }
+            )
+        }
     ) { padding ->
         LazyColumn(Modifier.fillMaxSize().padding(padding), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             item { Text("Choose meter type to add reading:", style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(16.dp)) }

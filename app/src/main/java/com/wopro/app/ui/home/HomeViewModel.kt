@@ -20,9 +20,9 @@ data class HomeUiState(
     val loading: Boolean = true,
     val user: UserEntity? = null,
     val openCount: Int = 0,
-    val inProgressCount: Int = 0,
-    val completedCount: Int = 0,
-    val overdueCount: Int = 0,
+    val acceptedCount: Int = 0,
+    val pendingCount: Int = 0,
+    val doneCount: Int = 0,
     val recent: List<WorkOrderEntity> = emptyList(),
     val weeklyCounts: List<Int> = List(7) { 0 },
     val unreadCount: Int = 0
@@ -34,21 +34,27 @@ class HomeViewModel(
 ) : ViewModel() {
 
     val ui: StateFlow<HomeUiState> =
-        combine(repo.observeWorkOrders(), initUser(), repo.observeUnreadCount()) { wos, user, unread ->
+        combine(repo.observeWorkOrders(), initUser(), repo.observeUnread()) { wos, user, unread ->
+            val myEmail = user?.email?.trim()?.lowercase() ?: ""
+            val isAdmin = user?.role.equals("Admin", ignoreCase = true)
+            val visibleUnread = if (isAdmin) unread.size else unread.count {
+                val t = it.targetEmail.trim().lowercase()
+                t.isEmpty() || t == myEmail
+            }
             val open = wos.count { it.status == "Open" }
-            val inProg = wos.count { it.status == "In Progress" }
-            val completed = wos.count { it.status == "Completed" }
-            val overdue = wos.count { it.status == "Overdue" }
+            val accepted = wos.count { it.status == "Accepted" }
+            val pending = wos.count { it.status == "Pending" }
+            val done = wos.count { it.status == "Done" }
             HomeUiState(
                 loading = false,
                 user = user,
                 openCount = open,
-                inProgressCount = inProg,
-                completedCount = completed,
-                overdueCount = overdue,
+                acceptedCount = accepted,
+                pendingCount = pending,
+                doneCount = done,
                 recent = wos.take(5),
                 weeklyCounts = weeklyCreated(wos),
-                unreadCount = unread
+                unreadCount = visibleUnread
             )
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), HomeUiState())

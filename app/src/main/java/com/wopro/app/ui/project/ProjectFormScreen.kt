@@ -10,10 +10,12 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -44,7 +46,8 @@ import kotlinx.coroutines.CoroutineScope
 fun ProjectFormScreen(
     projectId: Long,
     factory: VMFactory,
-    onSaved: () -> Unit
+    onSaved: () -> Unit,
+    onBack: (() -> Unit)? = null
 ) {
     val context = LocalContext.current
     val repo = (context.applicationContext as WOProApp).container.repository
@@ -63,7 +66,16 @@ fun ProjectFormScreen(
     }
 
     Scaffold(
-        topBar = { TopAppBar(title = { Text(if (projectId > 0) "Edit Project" else "New Project", fontWeight = FontWeight.Bold) }) }
+        topBar = {
+            TopAppBar(
+                title = { Text(if (projectId > 0) "Edit Project" else "New Project", fontWeight = FontWeight.Bold) },
+                navigationIcon = {
+                    if (onBack != null) {
+                        IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back") }
+                    }
+                }
+            )
+        }
     ) { padding ->
         if (loading) { LoadingBox(Modifier.fillMaxSize().padding(padding)); return@Scaffold }
         Column(

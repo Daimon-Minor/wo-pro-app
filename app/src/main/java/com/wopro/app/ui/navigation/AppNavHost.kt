@@ -32,6 +32,7 @@ import com.wopro.app.ui.main.MainScreen
 import com.wopro.app.ui.team.TeamsListScreen
 import com.wopro.app.ui.team.TeamFormScreen
 import com.wopro.app.ui.notification.NotificationsScreen
+import com.wopro.app.ui.report.ReportsScreen
 
 @Composable
 fun AppNavHost() {
@@ -100,6 +101,14 @@ fun AppNavHost() {
             )
         }
 
+        // ---- Reports ----
+        composable(Routes.REPORTS) {
+            ReportsScreen(
+                factory = vmFactory,
+                onBack = { navController.popBackStack() }
+            )
+        }
+
         // ---- Teams ----
         composable(Routes.TEAMS_LIST) {
             TeamsListScreen(
@@ -125,7 +134,8 @@ fun AppNavHost() {
             WorkOrderListScreen(
                 factory = vmFactory,
                 onNew = { navController.navigate(Routes.woForm()) },
-                onDetail = { id -> navController.navigate(Routes.woDetail(id)) }
+                onDetail = { id -> navController.navigate(Routes.woDetail(id)) },
+                onBack = { navController.popBackStack() }
             )
         }
         composable(
@@ -136,7 +146,8 @@ fun AppNavHost() {
             WorkOrderFormScreen(
                 woId = woId,
                 factory = vmFactory,
-                onSaved = { navController.popBackStack() }
+                onSaved = { navController.popBackStack() },
+                onBack = { navController.popBackStack() }
             )
         }
         composable(
@@ -157,7 +168,8 @@ fun AppNavHost() {
             ProjectListScreen(
                 factory = vmFactory,
                 onNew = { navController.navigate(Routes.projectForm()) },
-                onDetail = { id -> navController.navigate(Routes.projectDetail(id)) }
+                onDetail = { id -> navController.navigate(Routes.projectDetail(id)) },
+                onBack = { navController.popBackStack() }
             )
         }
         composable(
@@ -167,7 +179,8 @@ fun AppNavHost() {
             ProjectFormScreen(
                 projectId = entry.arguments?.getLong("projectId") ?: 0L,
                 factory = vmFactory,
-                onSaved = { navController.popBackStack() }
+                onSaved = { navController.popBackStack() },
+                onBack = { navController.popBackStack() }
             )
         }
         composable(
@@ -187,7 +200,8 @@ fun AppNavHost() {
             AuditListScreen(
                 factory = vmFactory,
                 onNew = { navController.navigate(Routes.auditForm()) },
-                onDetail = { id -> navController.navigate(Routes.auditForm(id)) }
+                onDetail = { id -> navController.navigate(Routes.auditForm(id)) },
+                onBack = { navController.popBackStack() }
             )
         }
         composable(
@@ -205,7 +219,8 @@ fun AppNavHost() {
         composable(Routes.METER_LIST) {
             MeterListScreen(
                 factory = vmFactory,
-                onNew = { type -> navController.navigate(Routes.meterForm(type)) }
+                onNew = { type -> navController.navigate(Routes.meterForm(type)) },
+                onBack = { navController.popBackStack() }
             )
         }
         composable(
@@ -221,17 +236,23 @@ fun AppNavHost() {
 
         // ---- AI Chat ----
         composable(Routes.AI_CHAT) {
-            AiChatScreen(factory = vmFactory)
+            AiChatScreen(
+                factory = vmFactory,
+                onBack = { navController.popBackStack() }
+            )
         }
 
         // ---- Settings ----
         composable(Routes.SETTINGS) {
-            SettingsScreen(onLogout = {
-                authVm.logout()
-                navController.navigate(Routes.LOGIN) {
-                    popUpTo(0) { inclusive = true }
-                }
-            }, onBack = { navController.popBackStack() })
+            SettingsScreen(
+                onLogout = {
+                    authVm.logout()
+                    navController.navigate(Routes.LOGIN) {
+                        popUpTo(0) { inclusive = true }
+                    }
+                },
+                onBack = { navController.popBackStack() }
+            )
         }
     }
 }

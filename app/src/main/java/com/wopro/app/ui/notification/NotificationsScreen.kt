@@ -25,7 +25,11 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -34,6 +38,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.ui.platform.LocalContext
 import com.wopro.app.WOProApp
+import com.wopro.app.data.local.NotificationEntity
 import com.wopro.app.ui.VMFactory
 import com.wopro.app.ui.components.EmptyState
 import com.wopro.app.ui.home.formatDate
@@ -50,10 +55,36 @@ fun NotificationsScreen(
     factory: VMFactory,
     onBack: () -> Unit
 ) {
+    val context = LocalContext.current
+    val app = context.applicationContext as WOProApp
+    val repo = app.container.repository
+    val encryption = app.container.encryptionManager
     val vm: NotificationViewModel = viewModel(factory = factory)
     val notifications by vm.ui.collectAsStateWithLifecycle(initialValue = emptyList())
-    val context = LocalContext.current
-    val repo = (context.applicationContext as WOProApp).container.repository
+    var currentEmail by remember { mutableStateOf("") }
+    var currentRole by remember { mutableStateOf("") }
+    var filtered by remember { mutableStateOf<List<NotificationEntity>>(emptyList()) }
+
+    LaunchedEffect(Unit) {
+        val id = encryption.getUserId()
+        if (id > 0) {
+            val user = kotlinx.coroutines.withContext(Dispatchers.IO) { repo.getUser(id) }
+            currentEmail = user?.email?.trim()?.lowercase() ?: ""
+            currentRole = user?.role ?: ""
+        }
+    }
+
+    // Filter notifications: admin sees all, others see targeted + broadcast
+    LaunchedEffect(notifications, currentEmail, currentRole) {
+        filtered = if (currentRole.equals("Admin", ignoreCase = true)) {
+            notifications
+        } else {
+            notifications.filter { n ->
+                val t = n.targetEmail.trim().lowercase()
+                t.isEmpty() || t == currentEmail
+            }
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -79,9 +110,9 @@ fun NotificationsScreen(
             )
         }
     ) { padding ->
-        if (notifications.isEmpty()) EmptyState("Belum ada notifikasi", Modifier.fillMaxSize().padding(padding))
+        if (filtered.isEmpty()) EmptyState("Belum ada notifikasi", Modifier.fillMaxSize().padding(padding))
         else LazyColumn(Modifier.fillMaxSize().padding(padding), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            items(notifications, key = { it.id }) { n ->
+            items(filtered, key = { it.id }) { n ->
                 Card(
                     onClick = {
                         if (!n.read) {
