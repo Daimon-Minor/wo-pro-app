@@ -22,10 +22,12 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
@@ -54,6 +56,18 @@ fun MainScreen(onNavTo: (String) -> Unit, onLogout: () -> Unit) {
         (LocalContext.current.applicationContext as WOProApp).container.repository,
         (LocalContext.current.applicationContext as WOProApp).container.encryptionManager
     )
+    val app = LocalContext.current.applicationContext as WOProApp
+    var isAdmin by remember { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+        val id = app.container.encryptionManager.getUserId()
+        if (id > 0) {
+            val user = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                app.container.repository.getUser(id)
+            }
+            isAdmin = user?.role.equals("Admin", ignoreCase = true)
+        }
+    }
 
     Scaffold(
         bottomBar = {
@@ -95,7 +109,8 @@ fun MainScreen(onNavTo: (String) -> Unit, onLogout: () -> Unit) {
                     onReports = { onNavTo("reports") },
                     onAiChat = { onNavTo("ai_chat") },
                     onSettings = { onNavTo("settings") },
-                    onTeams = { onNavTo("teams_list") }
+                    onTeams = { onNavTo("teams_list") },
+                    isAdmin = isAdmin
                 )
             }
         }
@@ -109,17 +124,21 @@ private fun MoreMenu(
     onReports: () -> Unit,
     onAiChat: () -> Unit,
     onSettings: () -> Unit,
-    onTeams: () -> Unit
+    onTeams: () -> Unit,
+    isAdmin: Boolean
 ) {
+    val items = mutableListOf(
+        MenuItem("Logbook", "Catat pekerjaan harian & riwayat", Icons.Default.Book, onLogbook),
+        MenuItem("Projects", "Capital projects & maintenance plans", Icons.Default.Work, onProjects),
+        MenuItem("Reports", "Export CSV & filter laporan", Icons.Default.Assessment, onReports),
+        MenuItem("AI Assistant", "Ask about procedures & energy tips", Icons.Default.Chat, onAiChat),
+        MenuItem("Settings", "Profile, security & data", Icons.Default.Settings, onSettings)
+    )
+    if (isAdmin) {
+        items.add(0, MenuItem("Teams", "Kelola tim & handle blok (Admin)", Icons.Default.Work, onTeams))
+    }
     Column(Modifier.fillMaxSize().padding(top = 24.dp)) {
-        listOf(
-            MenuItem("Logbook", "Catat pekerjaan harian & riwayat", Icons.Default.Book, onLogbook),
-            MenuItem("Projects", "Capital projects & maintenance plans", Icons.Default.Work, onProjects),
-            MenuItem("Reports", "Export CSV & filter laporan", Icons.Default.Assessment, onReports),
-            MenuItem("AI Assistant", "Ask about procedures & energy tips", Icons.Default.Chat, onAiChat),
-            MenuItem("Teams", "Manage team & room assignments", Icons.Default.Work, onTeams),
-            MenuItem("Settings", "Profile, security & data", Icons.Default.Settings, onSettings)
-        ).forEach { item ->
+        items.forEach { item ->
             ListItem(
                 headlineContent = { Text(item.title) },
                 supportingContent = { Text(item.desc) },

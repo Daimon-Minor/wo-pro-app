@@ -36,6 +36,7 @@ import com.wopro.app.ui.report.ReportsScreen
 import com.wopro.app.ui.location.ManageLocationsScreen
 import com.wopro.app.ui.logbook.LogbookListScreen
 import com.wopro.app.ui.logbook.LogbookFormScreen
+import com.wopro.app.ui.block.ManageBlocksScreen
 
 @Composable
 fun AppNavHost() {
@@ -273,6 +274,14 @@ fun AppNavHost() {
             )
         }
 
+        // ---- Blocks (admin) ----
+        composable(Routes.BLOCKS) {
+            ManageBlocksScreen(
+                factory = vmFactory,
+                onBack = { navController.popBackStack() }
+            )
+        }
+
         // ---- Settings ----
         composable(Routes.SETTINGS) {
             SettingsScreen(
@@ -283,7 +292,8 @@ fun AppNavHost() {
                     }
                 },
                 onBack = { navController.popBackStack() },
-                onManageLocations = { navController.navigate(Routes.LOCATIONS) }
+                onManageLocations = { navController.navigate(Routes.LOCATIONS) },
+                onManageBlocks = { navController.navigate(Routes.BLOCKS) }
             )
         }
     }

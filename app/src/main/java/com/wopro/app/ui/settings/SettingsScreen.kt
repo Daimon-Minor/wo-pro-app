@@ -51,7 +51,8 @@ import kotlinx.coroutines.withContext
 fun SettingsScreen(
     onLogout: () -> Unit,
     onBack: () -> Unit,
-    onManageLocations: (() -> Unit)? = null
+    onManageLocations: (() -> Unit)? = null,
+    onManageBlocks: (() -> Unit)? = null
 ) {
     val context = LocalContext.current
     val app = context.applicationContext as WOProApp
@@ -86,14 +87,25 @@ fun SettingsScreen(
                 }
             }
 
-            if (isAdmin && onManageLocations != null) {
+            if (isAdmin) {
                 SectionHeader("Admin")
-                OutlinedButton(
-                    onClick = onManageLocations,
-                    modifier = Modifier.fillMaxWidth().height(52.dp)
-                ) {
-                    Icon(Icons.Default.Place, contentDescription = null)
-                    Text("  Kelola Lokasi", style = MaterialTheme.typography.titleMedium)
+                if (onManageBlocks != null) {
+                    OutlinedButton(
+                        onClick = onManageBlocks,
+                        modifier = Modifier.fillMaxWidth().height(52.dp)
+                    ) {
+                        Icon(Icons.Default.Storage, contentDescription = null)
+                        Text("  Kelola Blok (L1/L2/L3)", style = MaterialTheme.typography.titleMedium)
+                    }
+                }
+                if (onManageLocations != null) {
+                    OutlinedButton(
+                        onClick = onManageLocations,
+                        modifier = Modifier.fillMaxWidth().height(52.dp)
+                    ) {
+                        Icon(Icons.Default.Place, contentDescription = null)
+                        Text("  Kelola Lokasi", style = MaterialTheme.typography.titleMedium)
+                    }
                 }
             }
 

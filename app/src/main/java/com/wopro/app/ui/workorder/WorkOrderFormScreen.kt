@@ -82,6 +82,8 @@ fun WorkOrderFormScreen(
     var currentUserName by remember { mutableStateOf("") }
     var locationDropdownExpanded by remember { mutableStateOf(false) }
     var locationOptions by remember { mutableStateOf<List<String>>(emptyList()) }
+    var blockDropdownExpanded by remember { mutableStateOf(false) }
+    var blockOptions by remember { mutableStateOf<List<String>>(emptyList()) }
 
     val photoPicker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
         photoUri = uri?.toString()
@@ -106,6 +108,11 @@ fun WorkOrderFormScreen(
                 "Gym", "Parkir", "Ruang Rapat", "Kantor", "Dapur"
             )
         }
+        // Load blok dari database (kelola admin)
+        val savedBlocks = withContext(Dispatchers.IO) {
+            app.container.repository.observeBlocks().firstOrNull()?.map { it.name }
+        }
+        if (!savedBlocks.isNullOrEmpty()) blockOptions = savedBlocks
         if (woId > 0) {
             val wo = withContext(Dispatchers.IO) { repo.getWorkOrder(woId) }
             wo?.let {
@@ -169,22 +176,41 @@ fun WorkOrderFormScreen(
             }
 
             // Block + Room (routing ke team)
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Text("Blok (kelola admin)", style = MaterialTheme.typography.labelLarge)
+            ExposedDropdownMenuBox(
+                expanded = blockDropdownExpanded,
+                onExpandedChange = { blockDropdownExpanded = it }
+            ) {
                 OutlinedTextField(
                     value = block,
-                    onValueChange = { block = it.uppercase().take(3) },
-                    label = { Text("Blok") },
-                    singleLine = true,
-                    modifier = Modifier.weight(1f)
+                    onValueChange = { },
+                    readOnly = true,
+                    label = { Text("Pilih Blok") },
+                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = blockDropdownExpanded) },
+                    modifier = Modifier.fillMaxWidth().menuAnchor()
                 )
-                OutlinedTextField(
-                    value = roomNumber,
-                    onValueChange = { roomNumber = it.filter(Char::isDigit).take(4) },
-                    label = { Text("No. Kamar") },
-                    singleLine = true,
-                    modifier = Modifier.weight(1f)
-                )
+                ExposedDropdownMenu(
+                    expanded = blockDropdownExpanded,
+                    onDismissRequest = { blockDropdownExpanded = false }
+                ) {
+                    if (blockOptions.isEmpty()) {
+                        DropdownMenuItem(text = { Text("Belum ada blok — minta admin membuat blok") }, onClick = { blockDropdownExpanded = false })
+                    }
+                    blockOptions.forEach { b ->
+                        DropdownMenuItem(
+                            text = { Text(b) },
+                            onClick = { block = b; blockDropdownExpanded = false }
+                        )
+                    }
+                }
             }
+            OutlinedTextField(
+                value = roomNumber,
+                onValueChange = { roomNumber = it.filter(Char::isDigit).take(4) },
+                label = { Text("No. Kamar") },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth()
+            )
             OutlinedTextField(value = description, onValueChange = { description = it }, label = { Text("Description / Keterangan") }, minLines = 3, modifier = Modifier.fillMaxWidth())
 
             // Foto lampiran saat membuat WO
