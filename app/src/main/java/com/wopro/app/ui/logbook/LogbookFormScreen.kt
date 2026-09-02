@@ -17,6 +17,8 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.AddPhotoAlternate
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material3.Button
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
@@ -28,10 +30,13 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -52,6 +57,8 @@ import kotlinx.coroutines.withContext
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import java.util.Locale
+import java.util.TimeZone
 
 private val DEPARTMENTS = listOf(
     "Engineering", "Housekeeping", "F&B", "Security", "Front Office",
@@ -70,15 +77,17 @@ fun LogbookFormScreen(
     val app = context.applicationContext as WOProApp
     val repo = app.container.repository
 
-    var date by remember { mutableStateOf(formatToday()) }
+    // Simpan tanggal sebagai epoch millis (local midnight)
+    var dateMillis by remember { mutableLongStateOf(todayAtMidnight()) }
     var department by remember { mutableStateOf("Engineering") }
     var location by remember { mutableStateOf("") }
-    var description by remember { mutableStateOf("") }
+    var activity by remember { mutableStateOf("") }
     var photoUri by remember { mutableStateOf<String?>(null) }
     var currentUserName by remember { mutableStateOf("") }
     var locationOptions by remember { mutableStateOf<List<String>>(emptyList()) }
     var locDropdownExpanded by remember { mutableStateOf(false) }
     var deptDropdownExpanded by remember { mutableStateOf(false) }
+    var showDatePicker by remember { mutableStateOf(false) }
 
     val photoPicker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
         photoUri = uri?.toString()
@@ -97,10 +106,10 @@ fun LogbookFormScreen(
         if (entryId > 0) {
             val e = withContext(Dispatchers.IO) { repo.getLogbookEntry(entryId) }
             e?.let {
-                date = formatLogDate(it.date)
+                dateMillis = it.date
                 department = it.department
                 location = it.location
-                description = it.description
+                activity = it.description
                 photoUri = it.photoUri
             }
         }
@@ -109,7 +118,7 @@ fun LogbookFormScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(if (entryId > 0) "Edit Catatan" else "Catat Pekerjaan", fontWeight = FontWeight.Bold) },
+                title = { Text("Add Logbook", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary) },
                 navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back") } }
             )
         }
@@ -118,17 +127,19 @@ fun LogbookFormScreen(
             Modifier.fillMaxSize().padding(padding).padding(16.dp).verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
-            // Date
+            // Date — tappable, buka DatePicker
+            Text("Date", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.outline)
             OutlinedTextField(
-                value = date,
-                onValueChange = { date = it },
-                label = { Text("Tanggal (yyyy-MM-dd)") },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth()
+                value = friendlyDate(dateMillis),
+                onValueChange = { },
+                readOnly = true,
+                label = { Text("Date") },
+                modifier = Modifier.fillMaxWidth(),
+                trailingIcon = { IconButton(onClick = { showDatePicker = true }) { Icon(Icons.Default.Edit, contentDescription = "Pilih Tanggal") } }
             )
 
             // Department dropdown
-            Text("Departemen", style = MaterialTheme.typography.labelLarge)
+            Text("Department", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.outline)
             ExposedDropdownMenuBox(
                 expanded = deptDropdownExpanded,
                 onExpandedChange = { deptDropdownExpanded = it }
@@ -137,7 +148,7 @@ fun LogbookFormScreen(
                     value = department,
                     onValueChange = { },
                     readOnly = true,
-                    label = { Text("Pilih Departemen") },
+                    label = { Text("Department") },
                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = deptDropdownExpanded) },
                     modifier = Modifier.fillMaxWidth().menuAnchor()
                 )
@@ -154,8 +165,8 @@ fun LogbookFormScreen(
                 }
             }
 
-            // Location dropdown
-            Text("Lokasi", style = MaterialTheme.typography.labelLarge)
+            // Location (optional) — dropdown dari lokasi admin
+            Text("Location (optional)", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.outline)
             ExposedDropdownMenuBox(
                 expanded = locDropdownExpanded,
                 onExpandedChange = { locDropdownExpanded = it }
@@ -164,7 +175,7 @@ fun LogbookFormScreen(
                     value = location,
                     onValueChange = { },
                     readOnly = true,
-                    label = { Text("Pilih Lokasi") },
+                    label = { Text("Location") },
                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = locDropdownExpanded) },
                     modifier = Modifier.fillMaxWidth().menuAnchor()
                 )
@@ -181,17 +192,17 @@ fun LogbookFormScreen(
                 }
             }
 
-            // Description
+            // Activity / notes
+            Text("Activity", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.outline)
             OutlinedTextField(
-                value = description,
-                onValueChange = { description = it },
-                label = { Text("Deskripsi Pekerjaan") },
+                value = activity,
+                onValueChange = { activity = it },
+                label = { Text("Activity / notes") },
                 minLines = 4,
                 modifier = Modifier.fillMaxWidth()
             )
 
-            // Photo
-            Text("Foto", style = MaterialTheme.typography.labelLarge)
+            // Photo (opsional)
             if (photoUri != null) {
                 AsyncImage(
                     model = photoUri,
@@ -202,47 +213,92 @@ fun LogbookFormScreen(
             }
             OutlinedButton(onClick = { photoPicker.launch("image/*") }, modifier = Modifier.fillMaxWidth()) {
                 Icon(Icons.Default.AddPhotoAlternate, contentDescription = null)
-                Text("  ${if (photoUri != null) "Ganti Foto" else "Pilih Foto"}")
+                Text("  ${if (photoUri != null) "Ganti Foto" else "Tambah Foto"}")
             }
 
             Spacer(Modifier.height(8.dp))
-            Button(
-                onClick = {
-                    CoroutineScope(Dispatchers.IO).launch {
-                        val dateMillis = parseDate(date) ?: System.currentTimeMillis()
-                        repo.saveLogbookEntry(
-                            LogbookEntity(
-                                id = entryId,
-                                date = dateMillis,
-                                department = department,
-                                location = location,
-                                description = description,
-                                photoUri = photoUri,
-                                createdBy = currentUserName
-                            )
-                        )
-                    }
-                    onSaved()
-                },
-                modifier = Modifier.fillMaxWidth().height(52.dp),
-                enabled = description.isNotBlank()
+
+            // Batal / Save
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                Icon(Icons.Default.Save, contentDescription = null)
-                Text("  Simpan Catatan", style = MaterialTheme.typography.titleMedium)
+                OutlinedButton(
+                    onClick = onBack,
+                    modifier = Modifier.weight(1f).height(52.dp)
+                ) {
+                    Text("Batal", style = MaterialTheme.typography.titleMedium)
+                }
+                Button(
+                    onClick = {
+                        CoroutineScope(Dispatchers.IO).launch {
+                            repo.saveLogbookEntry(
+                                LogbookEntity(
+                                    id = entryId,
+                                    date = dateMillis,
+                                    department = department,
+                                    location = location,
+                                    description = activity,
+                                    photoUri = photoUri,
+                                    createdBy = currentUserName
+                                )
+                            )
+                        }
+                        onSaved()
+                    },
+                    modifier = Modifier.weight(1f).height(52.dp),
+                    enabled = activity.isNotBlank()
+                ) {
+                    Icon(Icons.Default.Save, contentDescription = null)
+                    Text("  Save", style = MaterialTheme.typography.titleMedium)
+                }
             }
+        }
+    }
+
+    // Date Picker dialog
+    if (showDatePicker) {
+        val pickerState = rememberDatePickerState(
+            initialSelectedDateMillis = toUtcMillis(dateMillis)
+        )
+        DatePickerDialog(
+            onDismissRequest = { showDatePicker = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    pickerState.selectedDateMillis?.let { utc ->
+                        dateMillis = utcToLocal(utc)
+                    }
+                    showDatePicker = false
+                }) { Text("OK") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDatePicker = false }) { Text("Batal") }
+            }
+        ) {
+            DatePicker(state = pickerState)
         }
     }
 }
 
-fun formatToday(): String {
-    return DateTimeFormatter.ofPattern("yyyy-MM-dd").format(java.time.LocalDate.now())
+fun friendlyDate(epoch: Long): String {
+    return try {
+        DateTimeFormatter.ofPattern("d MMM yyyy", Locale.ENGLISH)
+            .format(Instant.ofEpochMilli(epoch).atZone(ZoneId.systemDefault()))
+    } catch (t: Throwable) {
+        "today"
+    }
 }
 
-private fun parseDate(text: String): Long? {
-    return try {
-        val date = java.time.LocalDate.parse(text.trim())
-        date.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
-    } catch (t: Throwable) {
-        null
-    }
+private fun todayAtMidnight(): Long {
+    return java.time.LocalDate.now()
+        .atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
+}
+
+/** DatePicker pakai UTC midnight; konversi ke local. */
+private fun toUtcMillis(localEpoch: Long): Long {
+    return localEpoch - TimeZone.getDefault().getOffset(localEpoch)
+}
+
+private fun utcToLocal(utcEpoch: Long): Long {
+    return utcEpoch + TimeZone.getDefault().getOffset(utcEpoch)
 }

@@ -104,55 +104,41 @@ private fun LogbookCard(entry: LogbookEntity, onDelete: () -> Unit) {
         modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 2.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
-        Row(Modifier.fillMaxSize().padding(14.dp), verticalAlignment = Alignment.Top) {
-            Icon(
-                Icons.Default.Book,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.padding(end = 12.dp, top = 4.dp)
-            )
-            Column(Modifier.weight(1f)) {
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    Text(
-                        formatLogDate(entry.date),
-                        style = MaterialTheme.typography.labelLarge,
-                        color = Green600,
-                        fontWeight = FontWeight.Bold
-                    )
+        Column(Modifier.fillMaxSize().padding(14.dp)) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Text(
+                    formatLogDate(entry.date),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = Green600,
+                    fontWeight = FontWeight.Bold
+                )
+                Row {
                     if (entry.department.isNotBlank()) {
                         Text(
                             entry.department,
                             style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.outline
+                            color = MaterialTheme.colorScheme.outline,
+                            modifier = Modifier.padding(end = 4.dp)
                         )
                     }
+                    IconButton(onClick = onDelete) {
+                        Icon(Icons.Default.Delete, contentDescription = "Hapus", tint = MaterialTheme.colorScheme.error, modifier = Modifier.height(18.dp))
+                    }
                 }
-                Spacer(Modifier.height(2.dp))
-                if (entry.location.isNotBlank()) {
-                    Text(
-                        entry.location,
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-                Spacer(Modifier.height(4.dp))
+            }
+            if (entry.location.isNotBlank()) {
                 Text(
-                    entry.description,
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.Medium
+                    entry.location,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.outline
                 )
-                if (entry.createdBy.isNotBlank()) {
-                    Text(
-                        "Oleh: ${entry.createdBy}",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.outline,
-                        modifier = Modifier.padding(top = 4.dp)
-                    )
-                }
             }
-            IconButton(onClick = onDelete) {
-                Icon(Icons.Default.Delete, contentDescription = "Hapus", tint = MaterialTheme.colorScheme.error)
-            }
+            Text(
+                entry.description,
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.Medium,
+                modifier = Modifier.padding(top = 4.dp)
+            )
         }
     }
 }
