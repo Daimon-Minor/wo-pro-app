@@ -16,6 +16,7 @@ import androidx.compose.material.icons.filled.ExitToApp
 import androidx.compose.material.icons.filled.Fingerprint
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Place
 import androidx.compose.material.icons.filled.Storage
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -25,10 +26,12 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -39,14 +42,28 @@ import androidx.compose.ui.unit.dp
 import com.wopro.app.ui.components.LabeledRow
 import com.wopro.app.ui.components.SectionHeader
 import androidx.compose.ui.platform.LocalContext
+import com.wopro.app.WOProApp
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
     onLogout: () -> Unit,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    onManageLocations: (() -> Unit)? = null
 ) {
     val context = LocalContext.current
+    val app = context.applicationContext as WOProApp
+    var isAdmin by remember { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+        val id = app.container.encryptionManager.getUserId()
+        if (id > 0) {
+            val user = withContext(Dispatchers.IO) { app.container.repository.getUser(id) }
+            isAdmin = user?.role.equals("Admin", ignoreCase = true)
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -69,6 +86,17 @@ fun SettingsScreen(
                 }
             }
 
+            if (isAdmin && onManageLocations != null) {
+                SectionHeader("Admin")
+                OutlinedButton(
+                    onClick = onManageLocations,
+                    modifier = Modifier.fillMaxWidth().height(52.dp)
+                ) {
+                    Icon(Icons.Default.Place, contentDescription = null)
+                    Text("  Kelola Lokasi", style = MaterialTheme.typography.titleMedium)
+                }
+            }
+
             SectionHeader("Account")
             Button(
                 onClick = onLogout,
@@ -82,7 +110,7 @@ fun SettingsScreen(
             SectionHeader("About")
             Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
                 Column(Modifier.padding(16.dp)) {
-                    LabeledRow("App", "WO Pro v1.0.0")
+                    LabeledRow("App", "WO Pro v2.0.0")
                     LabeledRow("Architecture", "MVVM + Room + SQLCipher")
                     LabeledRow("Mode", "Demo (local data)")
                     LabeledRow("API", "HTTPS ready (configure in BuildConfig)")

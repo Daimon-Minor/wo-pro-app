@@ -4,6 +4,7 @@ import com.wopro.app.data.local.AppDatabase
 import com.wopro.app.data.local.AuditItemEntity
 import com.wopro.app.data.local.AuditReportEntity
 import com.wopro.app.data.local.ChatMessageEntity
+import com.wopro.app.data.local.LocationEntity
 import com.wopro.app.data.local.MeterReadingEntity
 import com.wopro.app.data.local.NotificationEntity
 import com.wopro.app.data.local.ProjectEntity
@@ -35,6 +36,16 @@ class WOProRepository(private val db: AppDatabase) {
             db.userDao().insert(
                 UserEntity(name = "Admin", email = ADMIN_EMAIL, role = "Admin")
             )
+        }
+    }
+
+    /**
+     * Seed default locations on first launch. Idempotent.
+     */
+    suspend fun seedLocations() {
+        if (db.locationDao().countAll() > 0) return
+        DEFAULT_LOCATIONS.forEach { name ->
+            db.locationDao().insert(LocationEntity(name = name))
         }
     }
 
@@ -92,6 +103,12 @@ class WOProRepository(private val db: AppDatabase) {
             db.workOrderDao().listByStatus(status)
         }
         return if (room > 0) all.filter { it.roomNumber == room } else all
+    }
+
+    /** Riwayat work order untuk kamar tertentu. */
+    suspend fun getRoomHistory(block: String, room: Int): List<WorkOrderEntity> {
+        if (room <= 0 || block.isBlank()) return emptyList()
+        return db.workOrderDao().listByRoom(block.trim().uppercase(), room)
     }
 
     /**
@@ -187,6 +204,18 @@ class WOProRepository(private val db: AppDatabase) {
     }
     suspend fun deleteTeam(t: TeamEntity) = db.teamDao().delete(t)
 
+    // ---- Locations (Lokasi) ----
+    fun observeLocations(): Flow<List<LocationEntity>> = db.locationDao().observeAll()
+    suspend fun getLocation(id: Long): LocationEntity? = db.locationDao().getById(id)
+    suspend fun addLocation(name: String): Long {
+        val trimmed = name.trim()
+        if (trimmed.isBlank()) return 0
+        val existing = db.locationDao().getByName(trimmed)
+        if (existing != null) return existing.id
+        return db.locationDao().insert(LocationEntity(name = trimmed))
+    }
+    suspend fun deleteLocation(l: LocationEntity) = db.locationDao().delete(l)
+
     // ---- Notifications ----
     fun observeNotifications(): Flow<List<NotificationEntity>> = db.notificationDao().observeAll()
     fun observeUnread(): Flow<List<NotificationEntity>> = db.notificationDao().observeUnread()
@@ -197,5 +226,12 @@ class WOProRepository(private val db: AppDatabase) {
 
     companion object {
         const val ADMIN_EMAIL = "admin"
+
+        /** Default lokasi yang di-seed saat pertama install (admin bisa tambah/hapus). */
+        val DEFAULT_LOCATIONS = listOf(
+            "Kamar", "Lobby", "Kolam Renang", "Restoran", "Spa",
+            "Gym", "Parkir", "Ruang Rapat", "Kantor", "Dapur",
+            "Koridor", "Atap", "Ruang Mesin", "Luar Gedung"
+        )
     }
 }

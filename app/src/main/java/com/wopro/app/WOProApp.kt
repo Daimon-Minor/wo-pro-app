@@ -42,6 +42,7 @@ class WOProApp : Application() {
                 if (!container.encryptionManager.hasPassword(WOProRepository.ADMIN_EMAIL)) {
                     container.encryptionManager.savePasswordHash(WOProRepository.ADMIN_EMAIL, "admin")
                 }
+                container.repository.seedLocations()
             } catch (t: Throwable) {
                 // Never crash startup because of seeding.
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {

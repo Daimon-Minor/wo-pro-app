@@ -117,3 +117,10 @@ data class NotificationEntity(
     val read: Boolean = false,
     val createdAt: Long = System.currentTimeMillis()
 )
+
+@Entity(tableName = "locations")
+data class LocationEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val name: String,
+    val createdAt: Long = System.currentTimeMillis()
+)

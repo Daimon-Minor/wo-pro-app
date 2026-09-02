@@ -33,6 +33,7 @@ import com.wopro.app.ui.team.TeamsListScreen
 import com.wopro.app.ui.team.TeamFormScreen
 import com.wopro.app.ui.notification.NotificationsScreen
 import com.wopro.app.ui.report.ReportsScreen
+import com.wopro.app.ui.location.ManageLocationsScreen
 
 @Composable
 fun AppNavHost() {
@@ -242,6 +243,14 @@ fun AppNavHost() {
             )
         }
 
+        // ---- Locations (admin) ----
+        composable(Routes.LOCATIONS) {
+            ManageLocationsScreen(
+                factory = vmFactory,
+                onBack = { navController.popBackStack() }
+            )
+        }
+
         // ---- Settings ----
         composable(Routes.SETTINGS) {
             SettingsScreen(
@@ -251,7 +260,8 @@ fun AppNavHost() {
                         popUpTo(0) { inclusive = true }
                     }
                 },
-                onBack = { navController.popBackStack() }
+                onBack = { navController.popBackStack() },
+                onManageLocations = { navController.navigate(Routes.LOCATIONS) }
             )
         }
     }

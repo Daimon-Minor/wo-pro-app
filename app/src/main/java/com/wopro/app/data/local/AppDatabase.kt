@@ -21,9 +21,10 @@ import net.sqlcipher.database.SupportFactory
         MeterReadingEntity::class,
         ChatMessageEntity::class,
         TeamEntity::class,
-        NotificationEntity::class
+        NotificationEntity::class,
+        LocationEntity::class
     ],
-    version = 3,
+    version = 4,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -35,6 +36,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun chatDao(): ChatDao
     abstract fun teamDao(): TeamDao
     abstract fun notificationDao(): NotificationDao
+    abstract fun locationDao(): LocationDao
 
     companion object {
         @Volatile

@@ -49,6 +49,9 @@ interface WorkOrderDao {
     @Query("SELECT * FROM work_orders ORDER BY updatedAt DESC")
     suspend fun listAll(): List<WorkOrderEntity>
 
+    @Query("SELECT * FROM work_orders WHERE block = :block AND roomNumber = :room ORDER BY createdAt DESC")
+    suspend fun listByRoom(block: String, room: Int): List<WorkOrderEntity>
+
     @Query("SELECT COUNT(*) FROM work_orders WHERE status = :status")
     suspend fun countByStatus(status: String): Int
 
@@ -180,4 +183,28 @@ interface NotificationDao {
 
     @Query("DELETE FROM notifications")
     suspend fun clear()
+}
+
+@Dao
+interface LocationDao {
+    @Query("SELECT * FROM locations ORDER BY name ASC")
+    fun observeAll(): Flow<List<LocationEntity>>
+
+    @Query("SELECT * FROM locations WHERE id = :id LIMIT 1")
+    suspend fun getById(id: Long): LocationEntity?
+
+    @Query("SELECT * FROM locations WHERE name = :name LIMIT 1")
+    suspend fun getByName(name: String): LocationEntity?
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insert(l: LocationEntity): Long
+
+    @Update
+    suspend fun update(l: LocationEntity)
+
+    @Delete
+    suspend fun delete(l: LocationEntity)
+
+    @Query("SELECT COUNT(*) FROM locations")
+    suspend fun countAll(): Int
 }

@@ -16,9 +16,13 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.AddPhotoAlternate
+import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material3.Button
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -45,6 +49,7 @@ import com.wopro.app.data.local.WorkOrderEntity
 import com.wopro.app.ui.VMFactory
 import com.wopro.app.ui.components.LoadingBox
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.withContext
 
 /** Lokasi preset yang bisa dipilih user saat membuat work order. */
@@ -75,6 +80,8 @@ fun WorkOrderFormScreen(
     var photoUri by remember { mutableStateOf<String?>(null) }
     var loading by remember { mutableStateOf(woId > 0) }
     var currentUserName by remember { mutableStateOf("") }
+    var locationDropdownExpanded by remember { mutableStateOf(false) }
+    var locationOptions by remember { mutableStateOf<List<String>>(emptyList()) }
 
     val photoPicker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
         photoUri = uri?.toString()
@@ -85,6 +92,19 @@ fun WorkOrderFormScreen(
         if (userId > 0) {
             val user = withContext(Dispatchers.IO) { app.container.repository.getUser(userId) }
             currentUserName = user?.name ?: ""
+        }
+        // Load lokasi dari database
+        val savedLocations = withContext(Dispatchers.IO) {
+            app.container.repository.observeLocations().firstOrNull()?.map { it.name }
+        }
+        if (!savedLocations.isNullOrEmpty()) {
+            locationOptions = savedLocations
+        } else {
+            // Fallback ke preset
+            locationOptions = listOf(
+                "Kamar", "Lobby", "Kolam Renang", "Restoran", "Spa",
+                "Gym", "Parkir", "Ruang Rapat", "Kantor", "Dapur"
+            )
         }
         if (woId > 0) {
             val wo = withContext(Dispatchers.IO) { repo.getWorkOrder(woId) }
@@ -116,33 +136,37 @@ fun WorkOrderFormScreen(
             OutlinedTextField(value = title, onValueChange = { title = it }, label = { Text("Title") }, singleLine = true, modifier = Modifier.fillMaxWidth())
             OutlinedTextField(value = category, onValueChange = { category = it }, label = { Text("Category") }, singleLine = true, modifier = Modifier.fillMaxWidth())
 
-            // Location — user tinggal pilih dari preset
+            // Location — dropdown (admin kelola di Settings → Kelola Lokasi)
             Text("Location", style = MaterialTheme.typography.labelLarge)
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-                LOCATION_PRESETS.take(6).forEach { loc ->
-                    androidx.compose.material3.FilterChip(
-                        selected = location == loc,
-                        onClick = { location = loc },
-                        label = { Text(loc) }
-                    )
+            ExposedDropdownMenuBox(
+                expanded = locationDropdownExpanded,
+                onExpandedChange = { locationDropdownExpanded = it }
+            ) {
+                OutlinedTextField(
+                    value = location,
+                    onValueChange = { },
+                    readOnly = true,
+                    label = { Text("Pilih Lokasi") },
+                    trailingIcon = {
+                        ExposedDropdownMenuDefaults.TrailingIcon(expanded = locationDropdownExpanded)
+                    },
+                    modifier = Modifier.fillMaxWidth().menuAnchor()
+                )
+                ExposedDropdownMenu(
+                    expanded = locationDropdownExpanded,
+                    onDismissRequest = { locationDropdownExpanded = false }
+                ) {
+                    locationOptions.forEach { loc ->
+                        DropdownMenuItem(
+                            text = { Text(loc) },
+                            onClick = {
+                                location = loc
+                                locationDropdownExpanded = false
+                            }
+                        )
+                    }
                 }
             }
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-                LOCATION_PRESETS.drop(6).forEach { loc ->
-                    androidx.compose.material3.FilterChip(
-                        selected = location == loc,
-                        onClick = { location = loc },
-                        label = { Text(loc) }
-                    )
-                }
-            }
-            OutlinedTextField(
-                value = location,
-                onValueChange = { location = it },
-                label = { Text("Location (ketik custom jika perlu)") },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth()
-            )
 
             // Block + Room (routing ke team)
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
