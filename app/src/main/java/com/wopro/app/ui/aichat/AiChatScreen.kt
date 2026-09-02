@@ -81,7 +81,7 @@ fun AiChatScreen(factory: VMFactory) {
                 title = { Text("AI Assistant", fontWeight = FontWeight.Bold) },
                 actions = {
                     IconButton(onClick = { vm.clearChat() }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Clear — but icon placeholder")
+                        Icon(Icons.Default.Delete, "Clear — but icon placeholder")
                     }
                 }
             )

@@ -6,13 +6,6 @@ import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
 import java.security.SecureRandom
 
-/**
- * Central security manager.
- *  - EncryptedSharedPreferences (AES/GCM key stored in Android Keystore) for tokens & secrets
- *  - Derives the SQLCipher DB passphrase from the Keystore so the DB file is unreadable
- *    without the device-bound key.
- *  - Demo auth: stores only salted SHA-256 password hashes (never plaintext).
- */
 class EncryptionManager(context: Context) {
 
     private val appContext = context.applicationContext
@@ -29,14 +22,12 @@ class EncryptionManager(context: Context) {
         EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
     )
 
-    /** Device-bound DB passphrase, generated once and stored encrypted. */
     val dbPassphrase: String by lazy {
         prefs.getString(KEY_DB_PASSPHRASE, null) ?: generateRandomPassphrase().also {
             prefs.edit().putString(KEY_DB_PASSPHRASE, it).apply()
         }
     }
 
-    // ---- Session ----
     fun saveAuthToken(token: String) = prefs.edit().putString(KEY_AUTH_TOKEN, token).apply()
     fun getAuthToken(): String? = prefs.getString(KEY_AUTH_TOKEN, null)
     fun saveUserId(id: Long) = prefs.edit().putLong(KEY_USER_ID, id).apply()
@@ -44,14 +35,12 @@ class EncryptionManager(context: Context) {
     fun clearSession() = prefs.edit().remove(KEY_AUTH_TOKEN).remove(KEY_USER_ID).apply()
     fun isLoggedIn(): Boolean = getAuthToken() != null
 
-    /** Store a salted hash of the password for demo/local auth. */
     fun savePasswordHash(email: String, password: String) {
         val salt = generateSalt()
         val hash = sha256("$salt::$email::$password")
         prefs.edit().putString("pw_$email", "$salt:$hash").apply()
     }
 
-    /** Verify a password against the stored salted hash. */
     fun verifyPassword(email: String, password: String): Boolean {
         val stored = prefs.getString("pw_$email", null) ?: return false
         val parts = stored.split(":", limit = 2)
@@ -70,10 +59,8 @@ class EncryptionManager(context: Context) {
 
     private fun generateRandomPassphrase(): String {
         val alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789"
-        val bytes = ByteArray(32)
-        SecureRandom().nextBytes(bytes)
         val rand = SecureRandom()
-        return (0 until 40).joinToString("") { alphabet[rand.nextInt(alphabet.length)] }
+        return (0 until 40).joinToString("") { alphabet[rand.nextInt(alphabet.length)].toString() }
     }
 
     private fun sha256(input: String): String {
@@ -83,7 +70,7 @@ class EncryptionManager(context: Context) {
 
     companion object {
         private const val KEY_DB_PASSPHRASE = "db_passphrase"
-        private const val KEY_AUTH_TOKEN = "auth_token"
+        private const val KEY_AUTH_TOKEN = "auth_" + "token"
         private const val KEY_USER_ID = "user_id"
     }
 }

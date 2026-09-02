@@ -87,7 +87,8 @@ fun MainScreen(onNavTo: (String) -> Unit, onLogout: () -> Unit) {
                 Tabs.MORE -> MoreMenu(
                     onProjects = { onNavTo("project_list") },
                     onAiChat = { onNavTo("ai_chat") },
-                    onSettings = { onNavTo("settings") }
+                    onSettings = { onNavTo("settings") },
+                    onTeams = { onNavTo("teams_list") }
                 )
             }
         }
@@ -95,19 +96,27 @@ fun MainScreen(onNavTo: (String) -> Unit, onLogout: () -> Unit) {
 }
 
 @Composable
-private fun MoreMenu(onProjects: () -> Unit, onAiChat: () -> Unit, onSettings: () -> Unit) {
+private fun MoreMenu(onProjects: () -> Unit, onAiChat: () -> Unit, onSettings: () -> Unit, onTeams: () -> Unit) {
     Column(Modifier.fillMaxSize().padding(top = 24.dp)) {
         listOf(
-            Triple("Projects", "Capital projects & maintenance plans", Icons.Default.Work, onProjects),
-            Triple("AI Assistant", "Ask about procedures & energy tips", Icons.Default.Chat, onAiChat),
-            Triple("Settings", "Profile, security & data", Icons.Default.Settings, onSettings)
-        ).forEach { (title, desc, icon, onClick) ->
+            MenuItem("Projects", "Capital projects & maintenance plans", Icons.Default.Work, onProjects),
+            MenuItem("AI Assistant", "Ask about procedures & energy tips", Icons.Default.Chat, onAiChat),
+            MenuItem("Teams", "Manage team & room assignments", Icons.Default.Work, onTeams),
+            MenuItem("Settings", "Profile, security & data", Icons.Default.Settings, onSettings)
+        ).forEach { item ->
             ListItem(
-                headlineContent = { Text(title) },
-                supportingContent = { Text(desc) },
-                leadingContent = { Icon(icon, contentDescription = null) },
-                modifier = Modifier.clickable(onClick = onClick)
+                headlineContent = { Text(item.title) },
+                supportingContent = { Text(item.desc) },
+                leadingContent = { Icon(item.icon, contentDescription = null) },
+                modifier = Modifier.clickable(onClick = item.onClick)
             )
         }
     }
 }
+
+private data class MenuItem(
+    val title: String,
+    val desc: String,
+    val icon: ImageVector,
+    val onClick: () -> Unit
+)

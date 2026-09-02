@@ -2,6 +2,7 @@ package com.wopro.app.ui.workorder
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -52,6 +53,8 @@ fun WorkOrderFormScreen(
     var description by remember { mutableStateOf("") }
     var location by remember { mutableStateOf("") }
     var priority by remember { mutableStateOf("Medium") }
+    var block by remember { mutableStateOf("") }
+    var roomNumber by remember { mutableStateOf("") }
     var loading by remember { mutableStateOf(woId > 0) }
 
     LaunchedEffect(woId) {
@@ -61,6 +64,8 @@ fun WorkOrderFormScreen(
                 title = it.title; category = it.category
                 description = it.description; location = it.location
                 priority = it.priority
+                block = it.block
+                roomNumber = if (it.roomNumber > 0) it.roomNumber.toString() else ""
             }
             loading = false
         }
@@ -77,6 +82,23 @@ fun WorkOrderFormScreen(
             OutlinedTextField(value = title, onValueChange = { title = it }, label = { Text("Title") }, singleLine = true, modifier = Modifier.fillMaxWidth())
             OutlinedTextField(value = category, onValueChange = { category = it }, label = { Text("Category") }, singleLine = true, modifier = Modifier.fillMaxWidth())
             OutlinedTextField(value = location, onValueChange = { location = it }, label = { Text("Location") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+            // Block + Room (routing ke team)
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                OutlinedTextField(
+                    value = block,
+                    onValueChange = { block = it.uppercase().take(3) },
+                    label = { Text("Blok") },
+                    singleLine = true,
+                    modifier = Modifier.weight(1f)
+                )
+                OutlinedTextField(
+                    value = roomNumber,
+                    onValueChange = { roomNumber = it.filter(Char::isDigit).take(4) },
+                    label = { Text("No. Kamar") },
+                    singleLine = true,
+                    modifier = Modifier.weight(1f)
+                )
+            }
             OutlinedTextField(value = description, onValueChange = { description = it }, label = { Text("Description") }, minLines = 3, modifier = Modifier.fillMaxWidth())
             // Priority buttons
             Text("Priority", style = MaterialTheme.typography.labelLarge)
@@ -96,7 +118,9 @@ fun WorkOrderFormScreen(
                         id = woId,
                         title = title, category = category,
                         description = description, location = location,
-                        priority = priority
+                        priority = priority,
+                        block = block,
+                        roomNumber = roomNumber.toIntOrNull() ?: 0
                     ))
                     onSaved()
                 },

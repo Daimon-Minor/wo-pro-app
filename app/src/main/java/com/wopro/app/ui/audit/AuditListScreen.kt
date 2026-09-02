@@ -58,8 +58,8 @@ fun AuditListScreen(
         else LazyColumn(Modifier.fillMaxSize().padding(padding), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             items(reports, key = { it.id }) { r ->
                 Card(
-                    Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
                     onClick = { onDetail(r.id) },
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
                 ) {
                     Row(Modifier.fillMaxSize().padding(14.dp), verticalAlignment = Alignment.CenterVertically) {

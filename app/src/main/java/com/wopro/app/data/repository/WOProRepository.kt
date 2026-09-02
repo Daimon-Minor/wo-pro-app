@@ -5,7 +5,9 @@ import com.wopro.app.data.local.AuditItemEntity
 import com.wopro.app.data.local.AuditReportEntity
 import com.wopro.app.data.local.ChatMessageEntity
 import com.wopro.app.data.local.MeterReadingEntity
+import com.wopro.app.data.local.NotificationEntity
 import com.wopro.app.data.local.ProjectEntity
+import com.wopro.app.data.local.TeamEntity
 import com.wopro.app.data.local.UserEntity
 import com.wopro.app.data.local.WorkOrderEntity
 import kotlinx.coroutines.flow.Flow
@@ -26,11 +28,40 @@ class WOProRepository(private val db: AppDatabase) {
     fun observeWorkOrders(status: String): Flow<List<WorkOrderEntity>> = db.workOrderDao().observeByStatus(status)
     suspend fun getWorkOrder(id: Long): WorkOrderEntity? = db.workOrderDao().getById(id)
     suspend fun saveWorkOrder(wo: WorkOrderEntity) {
-        if (wo.id == 0L) db.workOrderDao().insert(wo) else db.workOrderDao().update(wo)
+        if (wo.id == 0L) {
+            val id = db.workOrderDao().insert(wo)
+            notifyForWorkOrder(wo.copy(id = id))
+        } else {
+            db.workOrderDao().update(wo)
+        }
     }
     suspend fun deleteWorkOrder(wo: WorkOrderEntity) = db.workOrderDao().delete(wo)
     suspend fun countWorkOrders(status: String): Int = db.workOrderDao().countByStatus(status)
     suspend fun countAllWorkOrders(): Int = db.workOrderDao().countAll()
+
+    /**
+     * When a work order is created with a block + room range, check whether any
+     * team covers that block/room and create a notification for it.
+     */
+    private suspend fun notifyForWorkOrder(wo: WorkOrderEntity) {
+        if (wo.block.isBlank()) return
+        val block = wo.block.trim().uppercase()
+        val teams = db.teamDao().observeAll()
+        // observeAll() is a Flow; get the current value via first()
+        val current = kotlinx.coroutines.flow.first(teams)
+        val team = current.firstOrNull { t ->
+            t.block.equals(block, ignoreCase = true) &&
+                wo.roomNumber in t.roomStart..t.roomEnd
+        } ?: return
+        addNotification(
+            NotificationEntity(
+                title = "Tugas Baru: ${wo.title}",
+                body = "Tim ${team.name} (Blok $block) menerima work order ruang $block-${wo.roomNumber}.",
+                teamName = team.name,
+                woId = wo.id
+            )
+        )
+    }
 
     // ---- Projects ----
     fun observeProjects(): Flow<List<ProjectEntity>> = db.projectDao().observeAll()
@@ -70,4 +101,20 @@ class WOProRepository(private val db: AppDatabase) {
     fun observeChat(): Flow<List<ChatMessageEntity>> = db.chatDao().observeAll()
     suspend fun addChatMessage(m: ChatMessageEntity): Long = db.chatDao().insert(m)
     suspend fun clearChat() = db.chatDao().clear()
+
+    // ---- Teams (Kelompok) ----
+    fun observeTeams(): Flow<List<TeamEntity>> = db.teamDao().observeAll()
+    suspend fun getTeam(id: Long): TeamEntity? = db.teamDao().getById(id)
+    suspend fun saveTeam(t: TeamEntity) {
+        if (t.id == 0L) db.teamDao().insert(t) else db.teamDao().update(t)
+    }
+    suspend fun deleteTeam(t: TeamEntity) = db.teamDao().delete(t)
+
+    // ---- Notifications ----
+    fun observeNotifications(): Flow<List<NotificationEntity>> = db.notificationDao().observeAll()
+    fun observeUnreadCount(): Flow<Int> = db.notificationDao().observeUnreadCount()
+    suspend fun addNotification(n: NotificationEntity): Long = db.notificationDao().insert(n)
+    suspend fun markNotificationRead(id: Long) = db.notificationDao().markRead(id)
+    suspend fun markAllNotificationsRead() = db.notificationDao().markAllRead()
+    suspend fun clearNotifications() = db.notificationDao().clear()
 }

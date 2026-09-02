@@ -36,12 +36,6 @@ import com.wopro.app.ui.components.StatusChip
 import com.wopro.app.ui.home.formatDate
 import com.wopro.app.ui.home.statusColor
 
-class ProjectViewModel(repo: com.wopro.app.data.repository.WOProRepository) : androidx.lifecycle.ViewModel() {
-    val ui = repo.observeProjects()
-        .let { it }
-    // simple: expose flow directly; handled in screen with collectAsStateWithLifecycle
-}
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProjectListScreen(
@@ -60,8 +54,8 @@ fun ProjectListScreen(
         else LazyColumn(Modifier.fillMaxSize().padding(padding), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             items(projects, key = { it.id }) { p ->
                 Card(
-                    Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
                     onClick = { onDetail(p.id) },
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
                 ) {
                     Row(Modifier.fillMaxSize().padding(14.dp), verticalAlignment = Alignment.CenterVertically) {

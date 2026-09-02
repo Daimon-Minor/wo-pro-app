@@ -18,9 +18,12 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.ExitToApp
+import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.PendingActions
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material3.Badge
+import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -84,6 +87,17 @@ fun HomeScreen(
                     }
                 },
                 actions = {
+                    IconButton(onClick = { onNavTo("notifications") }) {
+                        BadgedBox(
+                            badge = {
+                                if (ui.unreadCount > 0) {
+                                    Badge { Text(if (ui.unreadCount > 99) "99+" else ui.unreadCount.toString()) }
+                                }
+                            }
+                        ) {
+                            Icon(Icons.Default.Notifications, contentDescription = "Notifications")
+                        }
+                    }
                     IconButton(onClick = onLogout) {
                         Icon(Icons.Default.ExitToApp, contentDescription = "Logout")
                     }
@@ -195,6 +209,7 @@ fun WeeklyChart(counts: List<Int>) {
         val days = listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
         counts.forEachIndexed { index, value ->
             val barHeight = (value.toFloat() / max) * 100f
+            val barColor = if (index % 2 == 0) MaterialTheme.colorScheme.primary else Amber400
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Box(
                     modifier = Modifier
@@ -204,7 +219,7 @@ fun WeeklyChart(counts: List<Int>) {
                     Canvas(Modifier.fillMaxSize()) {
                         val h = size.height * (barHeight / 100f)
                         drawRoundRect(
-                            color = if (index % 2 == 0) MaterialTheme.colorScheme.primary else Amber400,
+                            color = barColor,
                             topLeft = Offset(0f, size.height - h),
                             size = androidx.compose.ui.geometry.Size(size.width, h),
                             cornerRadius = androidx.compose.ui.geometry.CornerRadius(8f)

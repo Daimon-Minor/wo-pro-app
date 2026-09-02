@@ -124,3 +124,45 @@ interface ChatDao {
     @Query("DELETE FROM chat_messages")
     suspend fun clear()
 }
+
+@Dao
+interface TeamDao {
+    @Query("SELECT * FROM teams ORDER BY block ASC, roomStart ASC")
+    fun observeAll(): Flow<List<TeamEntity>>
+
+    @Query("SELECT * FROM teams WHERE id = :id LIMIT 1")
+    suspend fun getById(id: Long): TeamEntity?
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insert(t: TeamEntity): Long
+
+    @Update
+    suspend fun update(t: TeamEntity)
+
+    @Delete
+    suspend fun delete(t: TeamEntity)
+}
+
+@Dao
+interface NotificationDao {
+    @Query("SELECT * FROM notifications ORDER BY createdAt DESC")
+    fun observeAll(): Flow<List<NotificationEntity>>
+
+    @Query("SELECT * FROM notifications WHERE read = 0 ORDER BY createdAt DESC")
+    fun observeUnread(): Flow<List<NotificationEntity>>
+
+    @Query("SELECT COUNT(*) FROM notifications WHERE read = 0")
+    fun observeUnreadCount(): Flow<Int>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insert(n: NotificationEntity): Long
+
+    @Query("UPDATE notifications SET read = 1 WHERE id = :id")
+    suspend fun markRead(id: Long)
+
+    @Query("UPDATE notifications SET read = 1")
+    suspend fun markAllRead()
+
+    @Query("DELETE FROM notifications")
+    suspend fun clear()
+}

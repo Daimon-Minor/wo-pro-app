@@ -24,6 +24,8 @@ data class WorkOrderEntity(
     val status: String = "Open",     // Open / In Progress / Completed / Overdue
     val location: String = "",
     val assignedTo: String = "",
+    val block: String = "",
+    val roomNumber: Int = 0,
     val dueDate: Long? = null,
     val photoUri: String? = null,
     val createdBy: String = "",
@@ -84,4 +86,25 @@ data class ChatMessageEntity(
     val role: String,                // "user" / "assistant"
     val content: String,
     val timestamp: Long = System.currentTimeMillis()
+)
+
+@Entity(tableName = "teams")
+data class TeamEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val name: String,
+    val block: String,          // e.g. "A", "B", "C"
+    val roomStart: Int,         // e.g. 1
+    val roomEnd: Int,           // e.g. 60
+    val createdAt: Long = System.currentTimeMillis()
+)
+
+@Entity(tableName = "notifications")
+data class NotificationEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val title: String,
+    val body: String,
+    val teamName: String = "",
+    val woId: Long = 0,
+    val read: Boolean = false,
+    val createdAt: Long = System.currentTimeMillis()
 )

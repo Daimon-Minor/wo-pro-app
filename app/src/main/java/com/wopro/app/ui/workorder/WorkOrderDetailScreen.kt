@@ -2,6 +2,7 @@ package com.wopro.app.ui.workorder
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -10,6 +11,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -84,6 +86,9 @@ fun WorkOrderDetailScreen(
                     LabeledRow("Category", item.category)
                     LabeledRow("Priority", item.priority)
                     LabeledRow("Location", item.location)
+                    if (item.block.isNotBlank()) {
+                        LabeledRow("Blok / Kamar", "${item.block}-${item.roomNumber}")
+                    }
                     LabeledRow("Due", "Due: ${com.wopro.app.ui.home.formatDate(item.dueDate)}")
                 }
             }

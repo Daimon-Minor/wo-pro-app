@@ -82,7 +82,7 @@ fun AuditFormScreen(
             // For simplicity, just use defaults in edit too
         }
         if (items.isEmpty()) {
-            defaultItems.forEachIndexed { i, s -> items.add(AuditItemEntity(checkItem = s, result = "N/A")) }
+            defaultItems.forEachIndexed { i, s -> items.add(AuditItemEntity(checkItem = s, result = "N/A", reportId = 0)) }
         }
         loading = false
     }

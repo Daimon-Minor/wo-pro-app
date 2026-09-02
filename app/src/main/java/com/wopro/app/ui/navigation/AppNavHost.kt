@@ -29,6 +29,9 @@ import com.wopro.app.ui.utility.MeterFormScreen
 import com.wopro.app.ui.aichat.AiChatScreen
 import com.wopro.app.ui.settings.SettingsScreen
 import com.wopro.app.ui.main.MainScreen
+import com.wopro.app.ui.team.TeamsListScreen
+import com.wopro.app.ui.team.TeamFormScreen
+import com.wopro.app.ui.notification.NotificationsScreen
 
 @Composable
 fun AppNavHost() {
@@ -86,6 +89,34 @@ fun AppNavHost() {
                         popUpTo(0) { inclusive = true }
                     }
                 }
+            )
+        }
+
+        // ---- Notifications ----
+        composable(Routes.NOTIFICATIONS) {
+            NotificationsScreen(
+                factory = vmFactory,
+                onBack = { navController.popBackStack() }
+            )
+        }
+
+        // ---- Teams ----
+        composable(Routes.TEAMS_LIST) {
+            TeamsListScreen(
+                factory = vmFactory,
+                onNew = { navController.navigate(Routes.teamForm()) },
+                onEdit = { id -> navController.navigate(Routes.teamForm(id)) },
+                onBack = { navController.popBackStack() }
+            )
+        }
+        composable(
+            route = "teams_form?teamId={teamId}",
+            arguments = listOf(navArgument("teamId") { type = NavType.LongType; defaultValue = 0L })
+        ) { entry ->
+            TeamFormScreen(
+                teamId = entry.arguments?.getLong("teamId") ?: 0L,
+                factory = vmFactory,
+                onSaved = { navController.popBackStack() }
             )
         }
 

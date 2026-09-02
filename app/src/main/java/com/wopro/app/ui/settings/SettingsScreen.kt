@@ -38,9 +38,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.wopro.app.ui.components.LabeledRow
 import com.wopro.app.ui.components.SectionHeader
-import com.wopro.app.security.BiometricHelper
 import androidx.compose.ui.platform.LocalContext
-import androidx.activity.compose.LocalActivity
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -49,8 +47,6 @@ fun SettingsScreen(
     onBack: () -> Unit
 ) {
     val context = LocalContext.current
-    val activity = LocalActivity.current
-    var bioAvailable by remember { mutableStateOf(BiometricHelper.isAvailable(context)) }
 
     Scaffold(
         topBar = {
@@ -67,7 +63,6 @@ fun SettingsScreen(
             SectionHeader("Security")
             Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
                 Column(Modifier.padding(16.dp)) {
-                    LabeledRow("Biometric Auth", if (bioAvailable) "Available" else "Not available")
                     LabeledRow("Database", "Encrypted (SQLCipher AES-256)")
                     LabeledRow("Passwords", "Salted SHA-256 (never plaintext)")
                     LabeledRow("Network", "HTTPS only (cleartext blocked)")
@@ -76,16 +71,7 @@ fun SettingsScreen(
 
             SectionHeader("Account")
             Button(
-                onClick = {
-                    if (bioAvailable && activity != null) {
-                        BiometricHelper.authenticate(
-                            activity = activity,
-                            onSuccess = onLogout
-                        )
-                    } else {
-                        onLogout()
-                    }
-                },
+                onClick = onLogout,
                 modifier = Modifier.fillMaxWidth().height(52.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
             ) {

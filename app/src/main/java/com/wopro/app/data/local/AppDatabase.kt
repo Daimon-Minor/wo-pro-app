@@ -4,7 +4,7 @@ import android.content.Context
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
-import net.sqlcipher.database.SupportOpenHelperFactory
+import net.sqlcipher.database.SupportFactory
 
 /**
  * Encrypted local database powered by SQLCipher.
@@ -19,9 +19,11 @@ import net.sqlcipher.database.SupportOpenHelperFactory
         AuditReportEntity::class,
         AuditItemEntity::class,
         MeterReadingEntity::class,
-        ChatMessageEntity::class
+        ChatMessageEntity::class,
+        TeamEntity::class,
+        NotificationEntity::class
     ],
-    version = 1,
+    version = 2,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -31,6 +33,8 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun auditDao(): AuditDao
     abstract fun meterDao(): MeterDao
     abstract fun chatDao(): ChatDao
+    abstract fun teamDao(): TeamDao
+    abstract fun notificationDao(): NotificationDao
 
     companion object {
         @Volatile
@@ -47,7 +51,7 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "wopro.db"
                 )
-                    .openHelperFactory(SupportOpenHelperFactory(passphrase.toCharArray()))
+                    .openHelperFactory(SupportFactory(passphrase.toCharArray()))
                     .fallbackToDestructiveMigration()
                     .build()
                     .also { INSTANCE = it }
