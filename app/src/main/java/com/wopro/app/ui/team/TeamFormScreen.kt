@@ -67,9 +67,7 @@ fun TeamFormScreen(
     var users by remember { mutableStateOf<List<UserEntity>>(emptyList()) }
     var loading by remember { mutableStateOf(teamId > 0) }
 
-    val usersFlow = androidx.lifecycle.compose.collectAsStateWithLifecycle(
-        flow = repo.observeUsers(), initialValue = emptyList()
-    ).value
+    val usersFlow = repo.observeUsers().collectAsStateWithLifecycle(initialValue = emptyList()).value
     // keep local mirror so the list is always fresh
     LaunchedEffect(usersFlow) { users = usersFlow }
 
