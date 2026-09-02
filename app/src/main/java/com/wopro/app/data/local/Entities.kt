@@ -100,10 +100,22 @@ data class ChatMessageEntity(
 data class TeamEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val name: String,
-    val block: String,          // e.g. "A", "B", "C"
-    val roomStart: Int,         // e.g. 1
-    val roomEnd: Int,           // e.g. 60
+    val block: String,          // nama blok yang di-handle (dari BlockEntity)
     val memberEmails: String = "",  // anggota tim, dipisah koma (email user)
+    val createdAt: Long = System.currentTimeMillis()
+)
+
+/** Struktur fisik blok: nama + 3 range kamar (L1/L2/L3). Tim yang handle blok akan menerima notif WO dalam range. */
+@Entity(tableName = "blocks")
+data class BlockEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val name: String,
+    val l1Start: Int = 0,
+    val l1End: Int = 0,
+    val l2Start: Int = 0,
+    val l2End: Int = 0,
+    val l3Start: Int = 0,
+    val l3End: Int = 0,
     val createdAt: Long = System.currentTimeMillis()
 )
 

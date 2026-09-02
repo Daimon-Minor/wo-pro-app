@@ -4,6 +4,7 @@ import com.wopro.app.data.local.AppDatabase
 import com.wopro.app.data.local.AuditItemEntity
 import com.wopro.app.data.local.AuditReportEntity
 import com.wopro.app.data.local.ChatMessageEntity
+import com.wopro.app.data.local.BlockEntity
 import com.wopro.app.data.local.LocationEntity
 import com.wopro.app.data.local.LogbookEntity
 import com.wopro.app.data.local.MeterReadingEntity
@@ -127,48 +128,51 @@ class WOProRepository(private val db: AppDatabase) {
     }
 
     /**
-     * Assign team & push notification to every member whose team covers the
-     * block + room range. Works offline (local DB).
+     * Assign team & push notification to every member whose team handles the
+     * block, if the room falls inside any L1/L2/L3 range of that block.
+     * Works offline (local DB).
      */
     private suspend fun notifyForWorkOrder(wo: WorkOrderEntity) {
         if (wo.block.isBlank()) return
-        val block = wo.block.trim().uppercase()
-        val teams = db.teamDao().observeAll().first()
-        val team = teams.firstOrNull { t ->
-            t.block.equals(block, ignoreCase = true) &&
-                wo.roomNumber >= t.roomStart && wo.roomNumber <= t.roomEnd
-        } ?: return
+        val blockName = wo.block.trim().uppercase()
+        val block = db.blockDao().getByName(blockName)
+        if (block == null || !block.covers(wo.roomNumber)) return
 
-        val members = team.memberEmails.split(",")
-            .map { it.trim() }
-            .filter { it.isNotBlank() }
+        val teams = db.teamDao().observeAll().first()
+        val handlers = teams.filter { it.block.equals(blockName, ignoreCase = true) }
+        if (handlers.isEmpty()) return
 
         val title = "Tugas Baru: ${wo.title}"
-        val body = "Tim ${team.name} (Blok $block) menerima work order ruang $block-${wo.roomNumber}."
-        if (members.isEmpty()) {
-            addNotification(
-                NotificationEntity(title = title, body = body, teamName = team.name, woId = wo.id)
-            )
-        } else {
-            members.forEach { email ->
+        val body = "Blok $blockName (kamar $blockName-${wo.roomNumber}) menerima work order."
+        handlers.forEach { team ->
+            val members = team.memberEmails.split(",").map { it.trim() }.filter { it.isNotBlank() }
+            if (members.isEmpty()) {
                 addNotification(
-                    NotificationEntity(
-                        title = title,
-                        body = body,
-                        teamName = team.name,
-                        woId = wo.id,
-                        targetEmail = email
-                    )
+                    NotificationEntity(title = title, body = body, teamName = team.name, woId = wo.id)
                 )
+            } else {
+                members.forEach { email ->
+                    addNotification(
+                        NotificationEntity(
+                            title = title,
+                            body = body,
+                            teamName = team.name,
+                            woId = wo.id,
+                            targetEmail = email
+                        )
+                    )
+                }
             }
         }
     }
 
-    private suspend fun findTeamIdFor(block: String, room: Int): Long {
-        if (block.isBlank() || room <= 0) return 0
-        val b = block.trim().uppercase()
+    private suspend fun findTeamIdFor(blockName: String, room: Int): Long {
+        if (blockName.isBlank() || room <= 0) return 0
+        val name = blockName.trim().uppercase()
+        val block = db.blockDao().getByName(name) ?: return 0
+        if (!block.covers(room)) return 0
         return db.teamDao().observeAll().first()
-            .firstOrNull { t -> t.block.equals(b, ignoreCase = true) && room >= t.roomStart && room <= t.roomEnd }
+            .firstOrNull { it.block.equals(name, ignoreCase = true) }
             ?.id ?: 0
     }
 
@@ -218,6 +222,24 @@ class WOProRepository(private val db: AppDatabase) {
         if (t.id == 0L) db.teamDao().insert(t) else db.teamDao().update(t)
     }
     suspend fun deleteTeam(t: TeamEntity) = db.teamDao().delete(t)
+
+    // ---- Blocks (Blok & range kamar) ----
+    fun observeBlocks(): Flow<List<BlockEntity>> = db.blockDao().observeAll()
+    suspend fun getBlock(id: Long): BlockEntity? = db.blockDao().getById(id)
+    suspend fun getBlockByName(name: String): BlockEntity? = db.blockDao().getByName(name)
+    suspend fun saveBlock(b: BlockEntity) {
+        if (b.id == 0L) db.blockDao().insert(b) else db.blockDao().update(b)
+    }
+    suspend fun deleteBlock(b: BlockEntity) = db.blockDao().delete(b)
+    suspend fun countBlocks(): Int = db.blockDao().countAll()
+
+    /** Apakah nomor kamar termasuk dalam salah satu range (L1/L2/L3) blok. */
+    private fun BlockEntity.covers(room: Int): Boolean {
+        if (l1Start > 0 && room in l1Start..l1End) return true
+        if (l2Start > 0 && room in l2Start..l2End) return true
+        if (l3Start > 0 && room in l3Start..l3End) return true
+        return false
+    }
 
     // ---- Locations (Lokasi) ----
     fun observeLocations(): Flow<List<LocationEntity>> = db.locationDao().observeAll()

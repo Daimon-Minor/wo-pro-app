@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -19,7 +18,10 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -36,7 +38,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -46,7 +47,9 @@ import com.wopro.app.data.local.UserEntity
 import com.wopro.app.ui.VMFactory
 import com.wopro.app.ui.components.LoadingBox
 import com.wopro.app.ui.components.SectionHeader
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -58,18 +61,24 @@ fun TeamFormScreen(
     onSaved: () -> Unit
 ) {
     val context = LocalContext.current
-    val repo = (context.applicationContext as WOProApp).container.repository
+    val app = context.applicationContext as WOProApp
+    val repo = app.container.repository
     var name by remember { mutableStateOf("") }
     var block by remember { mutableStateOf("") }
-    var roomStart by remember { mutableStateOf("") }
-    var roomEnd by remember { mutableStateOf("") }
     var selectedEmails by remember { mutableStateOf(setOf<String>()) }
     var users by remember { mutableStateOf<List<UserEntity>>(emptyList()) }
+    var blockNames by remember { mutableStateOf<List<String>>(emptyList()) }
     var loading by remember { mutableStateOf(teamId > 0) }
+    var blockDropdownExpanded by remember { mutableStateOf(false) }
 
-    val usersFlow = repo.observeUsers().collectAsStateWithLifecycle(initialValue = emptyList()).value
-    // keep local mirror so the list is always fresh
-    LaunchedEffect(usersFlow) { users = usersFlow }
+    LaunchedEffect(Unit) {
+        val blocks = withContext(Dispatchers.IO) {
+            repo.observeBlocks().firstOrNull()?.map { it.name } ?: emptyList()
+        }
+        blockNames = blocks
+        val allUsers = withContext(Dispatchers.IO) { repo.observeUsers().firstOrNull() ?: emptyList() }
+        users = allUsers
+    }
 
     LaunchedEffect(teamId) {
         if (teamId > 0) {
@@ -77,8 +86,6 @@ fun TeamFormScreen(
             t?.let {
                 name = it.name
                 block = it.block
-                roomStart = it.roomStart.toString()
-                roomEnd = it.roomEnd.toString()
                 selectedEmails = it.memberEmails.split(",").map { s -> s.trim() }.filter { s -> s.isNotBlank() }.toSet()
             }
             loading = false
@@ -99,20 +106,35 @@ fun TeamFormScreen(
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
             OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("Nama Tim") }, singleLine = true, modifier = Modifier.fillMaxWidth())
-            OutlinedTextField(value = block, onValueChange = { block = it.uppercase().take(3) }, label = { Text("Blok (misal: A, B, C)") }, singleLine = true, modifier = Modifier.fillMaxWidth())
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+
+            // Pilih blok yang di-handle
+            Text("Blok yang Di-handle", style = MaterialTheme.typography.labelLarge)
+            ExposedDropdownMenuBox(
+                expanded = blockDropdownExpanded,
+                onExpandedChange = { blockDropdownExpanded = it }
+            ) {
                 OutlinedTextField(
-                    value = roomStart, onValueChange = { roomStart = it.filter { c -> c.isDigit() } },
-                    label = { Text("Ruang Mulai") }, singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    modifier = Modifier.weight(1f)
+                    value = block,
+                    onValueChange = { },
+                    readOnly = true,
+                    label = { Text("Pilih Blok") },
+                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = blockDropdownExpanded) },
+                    modifier = Modifier.fillMaxWidth().menuAnchor()
                 )
-                OutlinedTextField(
-                    value = roomEnd, onValueChange = { roomEnd = it.filter { c -> c.isDigit() } },
-                    label = { Text("Ruang Akhir") }, singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    modifier = Modifier.weight(1f)
-                )
+                ExposedDropdownMenu(
+                    expanded = blockDropdownExpanded,
+                    onDismissRequest = { blockDropdownExpanded = false }
+                ) {
+                    if (blockNames.isEmpty()) {
+                        DropdownMenuItem(text = { Text("Belum ada blok — buat di Settings → Kelola Blok") }, onClick = { blockDropdownExpanded = false })
+                    }
+                    blockNames.forEach { b ->
+                        DropdownMenuItem(
+                            text = { Text(b) },
+                            onClick = { block = b; blockDropdownExpanded = false }
+                        )
+                    }
+                }
             }
 
             SectionHeader("Anggota Tim (pilih user)")
@@ -152,11 +174,9 @@ fun TeamFormScreen(
             Spacer(Modifier.height(16.dp))
             Button(
                 onClick = {
-                    val start = roomStart.toIntOrNull() ?: 1
-                    val end = roomEnd.toIntOrNull() ?: 99
                     val members = selectedEmails.sorted().joinToString(",")
-                    kotlinx.coroutines.CoroutineScope(Dispatchers.IO).launch {
-                        repo.saveTeam(TeamEntity(id = teamId, name = name, block = block, roomStart = start, roomEnd = end, memberEmails = members))
+                    CoroutineScope(Dispatchers.IO).launch {
+                        repo.saveTeam(TeamEntity(id = teamId, name = name, block = block, memberEmails = members))
                     }
                     onSaved()
                 },

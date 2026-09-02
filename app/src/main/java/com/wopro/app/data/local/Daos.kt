@@ -145,7 +145,7 @@ interface ChatDao {
 
 @Dao
 interface TeamDao {
-    @Query("SELECT * FROM teams ORDER BY block ASC, roomStart ASC")
+    @Query("SELECT * FROM teams ORDER BY block ASC, name ASC")
     fun observeAll(): Flow<List<TeamEntity>>
 
     @Query("SELECT * FROM teams WHERE id = :id LIMIT 1")
@@ -159,6 +159,30 @@ interface TeamDao {
 
     @Delete
     suspend fun delete(t: TeamEntity)
+}
+
+@Dao
+interface BlockDao {
+    @Query("SELECT * FROM blocks ORDER BY name ASC")
+    fun observeAll(): Flow<List<BlockEntity>>
+
+    @Query("SELECT * FROM blocks WHERE id = :id LIMIT 1")
+    suspend fun getById(id: Long): BlockEntity?
+
+    @Query("SELECT * FROM blocks WHERE lower(name) = lower(:name) LIMIT 1")
+    suspend fun getByName(name: String): BlockEntity?
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insert(b: BlockEntity): Long
+
+    @Update
+    suspend fun update(b: BlockEntity)
+
+    @Delete
+    suspend fun delete(b: BlockEntity)
+
+    @Query("SELECT COUNT(*) FROM blocks")
+    suspend fun countAll(): Int
 }
 
 @Dao

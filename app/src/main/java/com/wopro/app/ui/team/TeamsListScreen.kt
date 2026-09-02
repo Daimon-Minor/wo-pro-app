@@ -100,7 +100,7 @@ private fun TeamCard(team: TeamEntity, onClick: () -> Unit, onDelete: () -> Unit
                 Text(team.name, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
                 Spacer(Modifier.height(4.dp))
                 Text(
-                    "Blok ${team.block} · Ruang ${team.roomStart}–${team.roomEnd}",
+                    "Handle Blok ${team.block}",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.outline
                 )

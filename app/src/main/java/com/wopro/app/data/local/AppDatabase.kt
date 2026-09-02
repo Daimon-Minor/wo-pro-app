@@ -23,9 +23,10 @@ import net.sqlcipher.database.SupportFactory
         TeamEntity::class,
         NotificationEntity::class,
         LocationEntity::class,
-        LogbookEntity::class
+        LogbookEntity::class,
+        BlockEntity::class
     ],
-    version = 6,
+    version = 7,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -39,6 +40,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun notificationDao(): NotificationDao
     abstract fun locationDao(): LocationDao
     abstract fun logbookDao(): LogbookDao
+    abstract fun blockDao(): BlockDao
 
     companion object {
         @Volatile

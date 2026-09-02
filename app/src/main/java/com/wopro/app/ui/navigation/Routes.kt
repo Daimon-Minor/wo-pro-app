@@ -26,6 +26,7 @@ object Routes {
     const val LOCATIONS = "locations"
     const val LOGBOOK_LIST = "logbook_list"
     const val LOGBOOK_FORM = "logbook_form?entryId={entryId}"
+    const val BLOCKS = "blocks"
 
     fun woForm(woId: Long? = null) = "wo_form?woId=${woId ?: 0}"
     fun woDetail(woId: Long) = "wo_detail/$woId"
