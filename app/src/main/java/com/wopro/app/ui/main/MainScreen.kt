@@ -1,0 +1,113 @@
+package com.wopro.app.ui.main
+
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.List
+import androidx.compose.material.icons.filled.Chat
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Speed
+import androidx.compose.material.icons.filled.Work
+import androidx.compose.material3.Icon
+import androidx.compose.material3.ListItem
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.dp
+import com.wopro.app.WOProApp
+import com.wopro.app.ui.VMFactory
+import com.wopro.app.ui.audit.AuditListScreen
+import com.wopro.app.ui.home.HomeScreen
+import com.wopro.app.ui.navigation.Tabs
+import com.wopro.app.ui.utility.MeterListScreen
+import com.wopro.app.ui.workorder.WorkOrderListScreen
+
+private data class TabItem(val route: String, val label: String, val icon: ImageVector)
+
+@Composable
+fun MainScreen(onNavTo: (String) -> Unit, onLogout: () -> Unit) {
+    var selectedTab by rememberSaveable { mutableStateOf(Tabs.HOME) }
+    val tabs = listOf(
+        TabItem(Tabs.HOME, "Home", Icons.Default.Home),
+        TabItem(Tabs.WOS, "Work Orders", Icons.Default.Work),
+        TabItem(Tabs.AUDIT, "Audit", Icons.AutoMirrored.Filled.List),
+        TabItem(Tabs.METERS, "Meters", Icons.Default.Speed),
+        TabItem(Tabs.MORE, "More", Icons.Default.MoreVert)
+    )
+    val factory = VMFactory(
+        (LocalContext.current.applicationContext as WOProApp).container.repository,
+        (LocalContext.current.applicationContext as WOProApp).container.encryptionManager
+    )
+
+    Scaffold(
+        bottomBar = {
+            NavigationBar {
+                tabs.forEach { tab ->
+                    NavigationBarItem(
+                        selected = selectedTab == tab.route,
+                        onClick = { selectedTab = tab.route },
+                        icon = { Icon(tab.icon, contentDescription = tab.label) },
+                        label = { Text(tab.label, maxLines = 1) }
+                    )
+                }
+            }
+        }
+    ) { padding ->
+        Box(Modifier.padding(padding)) {
+            when (selectedTab) {
+                Tabs.HOME -> HomeScreen(factory = factory, onNavTo = onNavTo, onLogout = onLogout)
+                Tabs.WOS -> WorkOrderListScreen(
+                    factory = factory,
+                    onNew = { onNavTo("wo_form") },
+                    onDetail = { id -> onNavTo("wo_detail/$id") }
+                )
+                Tabs.AUDIT -> AuditListScreen(
+                    factory = factory,
+                    onNew = { onNavTo("audit_form") },
+                    onDetail = { id -> onNavTo("audit_form?reportId=$id") }
+                )
+                Tabs.METERS -> MeterListScreen(
+                    factory = factory,
+                    onNew = { type -> onNavTo("meter_form?meterType=$type") }
+                )
+                Tabs.MORE -> MoreMenu(
+                    onProjects = { onNavTo("project_list") },
+                    onAiChat = { onNavTo("ai_chat") },
+                    onSettings = { onNavTo("settings") }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun MoreMenu(onProjects: () -> Unit, onAiChat: () -> Unit, onSettings: () -> Unit) {
+    Column(Modifier.fillMaxSize().padding(top = 24.dp)) {
+        listOf(
+            Triple("Projects", "Capital projects & maintenance plans", Icons.Default.Work, onProjects),
+            Triple("AI Assistant", "Ask about procedures & energy tips", Icons.Default.Chat, onAiChat),
+            Triple("Settings", "Profile, security & data", Icons.Default.Settings, onSettings)
+        ).forEach { (title, desc, icon, onClick) ->
+            ListItem(
+                headlineContent = { Text(title) },
+                supportingContent = { Text(desc) },
+                leadingContent = { Icon(icon, contentDescription = null) },
+                modifier = Modifier.clickable(onClick = onClick)
+            )
+        }
+    }
+}
