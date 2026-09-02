@@ -18,7 +18,8 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         // Build-time configuration. Override via gradle.properties / CI env.
-        buildConfigField("String", "API_BASE_URL", "\"${providers.gradleProperty(\"API_BASE_URL\").orElse(\"https://api.example.com\").get()}\"")
+        val apiUrl = providers.gradleProperty("API_BASE_URL").orElse("https://api.example.com").get()
+        buildConfigField("String", "API_BASE_URL", "\"$apiUrl\"")
     }
 
     buildTypes {
