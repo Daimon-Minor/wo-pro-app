@@ -10,6 +10,7 @@ data class UserEntity(
     val name: String,
     val email: String,
     val role: String = "Engineer",
+    val department: String = "",
     val avatarUri: String? = null,
     val createdAt: Long = System.currentTimeMillis()
 )
@@ -21,7 +22,7 @@ data class WorkOrderEntity(
     val description: String = "",
     val category: String,
     val priority: String = "Medium", // Low / Medium / High / Critical
-    val status: String = "Open",     // Open / Accepted / Pending / Done
+    val status: String = "Open",     // Open / On Progress / Pending / Done
     val location: String = "",
     val assignedTo: String = "",
     val block: String = "",

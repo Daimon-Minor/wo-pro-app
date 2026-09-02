@@ -83,9 +83,9 @@ class WOProRepository(private val db: AppDatabase) {
     // ---- Alur kerja status ----
     suspend fun acceptWorkOrder(wo: WorkOrderEntity, byName: String) {
         val now = System.currentTimeMillis()
-        val log = wo.activityLog + "\n${fmtLog(now)} -> Accepted ($byName)"
+        val log = wo.activityLog + "\n${fmtLog(now)} -> On Progress ($byName)"
         db.workOrderDao().update(
-            wo.copy(status = "Accepted", acceptedBy = byName, acceptedAt = now, updatedAt = now, activityLog = log)
+            wo.copy(status = "On Progress", acceptedBy = byName, acceptedAt = now, updatedAt = now, activityLog = log)
         )
     }
 
@@ -107,8 +107,8 @@ class WOProRepository(private val db: AppDatabase) {
 
     suspend fun resumeWorkOrder(wo: WorkOrderEntity) {
         val now = System.currentTimeMillis()
-        val log = wo.activityLog + "\n${fmtLog(now)} -> Resumed to Accepted"
-        db.workOrderDao().update(wo.copy(status = "Accepted", updatedAt = now, activityLog = log))
+        val log = wo.activityLog + "\n${fmtLog(now)} -> Resumed to On Progress"
+        db.workOrderDao().update(wo.copy(status = "On Progress", updatedAt = now, activityLog = log))
     }
 
     // ---- Export laporan ----

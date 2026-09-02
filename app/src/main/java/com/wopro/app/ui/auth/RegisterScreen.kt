@@ -6,10 +6,15 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Business
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.Button
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -26,6 +31,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.wopro.app.ui.components.ErrorBanner
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RegisterScreen(
     vm: AuthViewModel,
@@ -34,10 +40,17 @@ fun RegisterScreen(
 ) {
     val ui by vm.ui.collectAsStateWithLifecycle()
     var name by remember { mutableStateOf("") }
+    var department by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var confirm by remember { mutableStateOf("") }
     var localError by remember { mutableStateOf<String?>(null) }
+    var depExpanded by remember { mutableStateOf(false) }
+
+    val departments = listOf(
+        "ENGINEERING", "HOUSEKEEPING", "F&B", "General",
+        "FO (FRONT OFFICE)", "Operator", "DUTY MANAGER"
+    )
 
     AuthScaffold(
         title = "Create Account",
@@ -57,6 +70,34 @@ fun RegisterScreen(
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
+                // Dropdown Departemen — sesuai daftar departemen hotel
+                ExposedDropdownMenuBox(
+                    expanded = depExpanded,
+                    onExpandedChange = { depExpanded = it }
+                ) {
+                    OutlinedTextField(
+                        value = department,
+                        onValueChange = { },
+                        readOnly = true,
+                        label = { Text("Department") },
+                        placeholder = { Text("Select department") },
+                        leadingIcon = { Icon(Icons.Default.Business, contentDescription = null) },
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = depExpanded) },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth().menuAnchor()
+                    )
+                    ExposedDropdownMenu(
+                        expanded = depExpanded,
+                        onDismissRequest = { depExpanded = false }
+                    ) {
+                        departments.forEach { d ->
+                            DropdownMenuItem(
+                                text = { Text(d) },
+                                onClick = { department = d; depExpanded = false }
+                            )
+                        }
+                    }
+                }
                 OutlinedTextField(
                     value = email,
                     onValueChange = { email = it },
@@ -89,7 +130,7 @@ fun RegisterScreen(
                         if (password != confirm) {
                             localError = "Passwords do not match"
                         } else {
-                            vm.register(name, email, password)
+                            vm.register(name, email, password, department)
                         }
                     },
                     modifier = Modifier.fillMaxWidth().height(52.dp)

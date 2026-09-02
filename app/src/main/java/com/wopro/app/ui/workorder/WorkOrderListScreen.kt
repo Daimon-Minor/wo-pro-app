@@ -63,7 +63,7 @@ import com.wopro.app.WOProApp
 import com.wopro.app.data.local.WorkOrderEntity
 import com.wopro.app.ui.VMFactory
 import com.wopro.app.ui.components.EmptyState
-import com.wopro.app.ui.home.formatDate
+import com.wopro.app.ui.home.formatDateTime
 import com.wopro.app.ui.theme.Gray500
 import com.wopro.app.ui.theme.TealPrimary
 import kotlinx.coroutines.CoroutineScope
@@ -263,8 +263,8 @@ private fun WoCardRef(wo: WorkOrderEntity, onClick: () -> Unit, onAccept: () -> 
                     )
                     Spacer(Modifier.height(6.dp))
                     DetailRow(Icons.Default.LocationOn, locationText(wo))
-                    DetailRow(Icons.Default.Person, "by: ${wo.createdBy.ifBlank { "-" }}")
-                    DetailRow(Icons.Default.AccessTime, formatDate(wo.createdAt))
+                    DetailRow(Icons.Default.Person, "Dibuat oleh: ${wo.createdBy.ifBlank { "-" }}")
+                    DetailRow(Icons.Default.AccessTime, formatDateTime(wo.createdAt))
                     DetailRow(Icons.Default.PriorityHigh, wo.priority, textColor = priorityColor(wo.priority))
                 }
             }
@@ -310,7 +310,7 @@ private fun StatusPill(status: String) {
     val (bg, text) = when (status) {
         "Done" -> Color(0xFFE0F2F1) to DoneColor
         "Pending" -> Color(0xFFFFF8E1) to PendingColor
-        "Accepted" -> Color(0xFFE3F2FD) to AcceptedColor
+        "On Progress" -> Color(0xFFE3F2FD) to AcceptedColor
         "Open" -> Color(0xFFF0F2F2) to NewColor
         else -> Color(0xFFF0F2F2) to Gray500
     }

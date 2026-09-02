@@ -62,10 +62,14 @@ class AuthViewModel(
         }
     }
 
-    fun register(name: String, email: String, password: String) {
+    fun register(name: String, email: String, password: String, department: String = "") {
         viewModelScope.launch {
             if (name.isBlank()) {
                 _ui.value = AuthUiState(error = "Full name is required")
+                return@launch
+            }
+            if (department.isBlank()) {
+                _ui.value = AuthUiState(error = "Please select a department")
                 return@launch
             }
             if (!android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
@@ -82,7 +86,7 @@ class AuthViewModel(
                 _ui.value = AuthUiState(error = "An account with this email already exists. Please sign in.")
                 return@launch
             }
-            val user = UserEntity(name = name.trim(), email = normalized, role = "Engineer")
+            val user = UserEntity(name = name.trim(), email = normalized, role = "Engineer", department = department)
             val id = repo.createUser(user)
             encryption.savePasswordHash(normalized, password)
             encryption.saveAuthToken("demo-${System.currentTimeMillis()}")

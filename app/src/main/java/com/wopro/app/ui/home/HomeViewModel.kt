@@ -42,7 +42,7 @@ class HomeViewModel(
                 t.isEmpty() || t == myEmail
             }
             val open = wos.count { it.status == "Open" }
-            val accepted = wos.count { it.status == "Accepted" }
+            val accepted = wos.count { it.status == "On Progress" }
             val pending = wos.count { it.status == "Pending" }
             val done = wos.count { it.status == "Done" }
             HomeUiState(

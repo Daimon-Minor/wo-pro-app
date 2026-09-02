@@ -73,7 +73,7 @@ fun ReportsScreen(factory: com.wopro.app.ui.VMFactory, onBack: () -> Unit) {
     var showRoomHistory by remember { mutableStateOf(false) }
     var message by remember { mutableStateOf<String?>(null) }
 
-    val statuses = listOf("All", "Pending", "Done", "Open", "Accepted")
+    val statuses = listOf("All", "Pending", "Done", "Open", "On Progress")
 
     // Filter work orders
     LaunchedEffect(statusFilter, roomFilter, blockFilter) {

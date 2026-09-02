@@ -17,6 +17,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.AddPhotoAlternate
 import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenuItem
@@ -48,6 +49,7 @@ import com.wopro.app.WOProApp
 import com.wopro.app.data.local.WorkOrderEntity
 import com.wopro.app.ui.VMFactory
 import com.wopro.app.ui.components.LoadingBox
+import com.wopro.app.ui.components.rememberCameraLauncher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.withContext
@@ -87,6 +89,9 @@ fun WorkOrderFormScreen(
 
     val photoPicker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
         photoUri = uri?.toString()
+    }
+    val cameraLauncher = rememberCameraLauncher { uri ->
+        photoUri = uri
     }
 
     LaunchedEffect(woId) {
@@ -226,6 +231,11 @@ fun WorkOrderFormScreen(
             OutlinedButton(onClick = { photoPicker.launch("image/*") }, modifier = Modifier.fillMaxWidth()) {
                 Icon(Icons.Default.AddPhotoAlternate, contentDescription = null)
                 Text("  ${if (photoUri != null) "Ganti Foto" else "Pilih Foto"}")
+            }
+            // Tombol kamera untuk foto bukti pembuatan
+            OutlinedButton(onClick = { cameraLauncher() }, modifier = Modifier.fillMaxWidth()) {
+                Icon(Icons.Default.PhotoCamera, contentDescription = null)
+                Text("  ${if (photoUri != null) "Ambil Ulang" else "Ambil Foto"}")
             }
 
             // Priority buttons

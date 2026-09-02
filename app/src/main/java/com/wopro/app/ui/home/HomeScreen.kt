@@ -126,7 +126,7 @@ fun HomeScreen(
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     StatCard("Open", ui.openCount, Amber400, Modifier.weight(1f))
-                    StatCard("Accepted", ui.acceptedCount, MaterialTheme.colorScheme.primary, Modifier.weight(1f))
+                    StatCard("On Progress", ui.acceptedCount, MaterialTheme.colorScheme.primary, Modifier.weight(1f))
                 }
             }
             item {
@@ -261,7 +261,7 @@ private fun RecentWoRow(wo: WorkOrderEntity, onClick: () -> Unit) {
 @Composable
 fun statusColor(status: String): Color = when (status) {
     "Done" -> Green600
-    "Accepted" -> MaterialTheme.colorScheme.primary
+    "On Progress" -> MaterialTheme.colorScheme.primary
     "Pending" -> Amber400
     "Open" -> Amber400
     else -> MaterialTheme.colorScheme.outline
@@ -271,7 +271,7 @@ fun statusColor(status: String): Color = when (status) {
 fun colorForStatus(status: String): Color = when (status) {
     "Pending" -> Amber400
     "Open" -> Amber400
-    "Accepted" -> MaterialTheme.colorScheme.primary
+    "On Progress" -> MaterialTheme.colorScheme.primary
     "Done" -> Green600
     else -> MaterialTheme.colorScheme.outline
 }
@@ -279,6 +279,12 @@ fun colorForStatus(status: String): Color = when (status) {
 fun formatDate(epoch: Long?): String {
     if (epoch == null) return "No due date"
     val formatter = DateTimeFormatter.ofPattern("dd MMM")
+    return Instant.ofEpochMilli(epoch).atZone(ZoneId.systemDefault()).format(formatter)
+}
+
+fun formatDateTime(epoch: Long?): String {
+    if (epoch == null) return "-"
+    val formatter = DateTimeFormatter.ofPattern("dd MMM yyyy · HH:mm")
     return Instant.ofEpochMilli(epoch).atZone(ZoneId.systemDefault()).format(formatter)
 }
 

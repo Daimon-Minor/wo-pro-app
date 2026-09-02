@@ -22,8 +22,10 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.AccessTime
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material.icons.filled.PriorityHigh
 import androidx.compose.material.icons.filled.Send
 import androidx.compose.material3.AlertDialog
@@ -64,7 +66,8 @@ import com.wopro.app.WOProApp
 import com.wopro.app.data.local.WorkOrderEntity
 import com.wopro.app.ui.VMFactory
 import com.wopro.app.ui.components.SectionHeader
-import com.wopro.app.ui.home.formatDate
+import com.wopro.app.ui.components.rememberCameraLauncher
+import com.wopro.app.ui.home.formatDateTime
 import com.wopro.app.ui.theme.Gray500
 import com.wopro.app.ui.theme.TealPrimary
 import kotlinx.coroutines.CoroutineScope
@@ -100,6 +103,16 @@ fun WorkOrderDetailScreen(
         if (uri != null && wo != null) {
             CoroutineScope(Dispatchers.IO).launch {
                 repo.setDone(wo!!, uri.toString())
+                wo = repo.getWorkOrder(woId)
+            }
+        }
+    }
+
+    // Kamera untuk foto bukti selesai (permission otomatis diminta)
+    val doneCamera = rememberCameraLauncher { uri ->
+        if (wo != null) {
+            CoroutineScope(Dispatchers.IO).launch {
+                repo.setDone(wo!!, uri)
                 wo = repo.getWorkOrder(woId)
             }
         }
@@ -159,11 +172,17 @@ fun WorkOrderDetailScreen(
                         Spacer(Modifier.height(12.dp))
                     }
                     DetailRowDetail(Icons.Default.LocationOn, locationTextDetail(item))
-                    DetailRowDetail(Icons.Default.Person, "by: ${item.createdBy.ifBlank { "-" }}")
-                    DetailRowDetail(Icons.Default.AccessTime, "Dibuat: ${formatDate(item.createdAt)}")
+                    DetailRowDetail(Icons.Default.Person, "Dibuat oleh: ${item.createdBy.ifBlank { "-" }}")
+                    DetailRowDetail(Icons.Default.AccessTime, "Dibuat: ${formatDateTime(item.createdAt)}")
+                    if (item.acceptedBy.isNotBlank()) {
+                        DetailRowDetail(Icons.Default.Person, "Diterima oleh: ${item.acceptedBy}")
+                        if (item.acceptedAt != null) {
+                            DetailRowDetail(Icons.Default.AccessTime, "Diterima: ${formatDateTime(item.acceptedAt)}")
+                        }
+                    }
                     DetailRowDetail(Icons.Default.PriorityHigh, item.priority, textColor = priorityColorDetail(item.priority))
                     if (item.dueDate != null) {
-                        DetailRowDetail(Icons.Default.AccessTime, "Due: ${formatDate(item.dueDate)}")
+                        DetailRowDetail(Icons.Default.AccessTime, "Due: ${formatDateTime(item.dueDate)}")
                     }
                 }
             }
@@ -232,9 +251,12 @@ fun WorkOrderDetailScreen(
                         Text("  Accept Work Order", style = MaterialTheme.typography.titleMedium)
                     }
                 }
-                "Accepted" -> {
+                "On Progress" -> {
                     Spacer(Modifier.height(6.dp))
                     DetailRowDetail(Icons.Default.Person, "Diterima oleh: ${item.acceptedBy.ifBlank { "-" }}")
+                    if (item.acceptedAt != null) {
+                        DetailRowDetail(Icons.Default.AccessTime, "Diterima: ${formatDateTime(item.acceptedAt)}")
+                    }
                     Spacer(Modifier.height(6.dp))
                     Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
                         OutlinedButton(onClick = { showPendingDialog = true }, modifier = Modifier.weight(1f).height(52.dp)) {
@@ -242,13 +264,18 @@ fun WorkOrderDetailScreen(
                             Text("  Pending")
                         }
                         Button(
-                            onClick = { donePhotoPicker.launch("image/*") },
+                            onClick = { doneCamera() },
                             modifier = Modifier.weight(1f).height(52.dp),
                             colors = ButtonDefaults.buttonColors(containerColor = TealPrimary)
                         ) {
-                            Icon(Icons.Default.CheckCircle, contentDescription = null)
+                            Icon(Icons.Default.PhotoCamera, contentDescription = null)
                             Text("  Done")
                         }
+                    }
+                    // Alternatif pilih foto dari galeri untuk bukti selesai
+                    TextButton(onClick = { donePhotoPicker.launch("image/*") }, modifier = Modifier.align(Alignment.CenterHorizontally)) {
+                        Icon(Icons.Default.Image, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Text("  atau pilih foto dari galeri")
                     }
                 }
                 "Pending" -> {
@@ -272,13 +299,18 @@ fun WorkOrderDetailScreen(
                             Text("  Resume")
                         }
                         Button(
-                            onClick = { donePhotoPicker.launch("image/*") },
+                            onClick = { doneCamera() },
                             modifier = Modifier.weight(1f).height(52.dp),
                             colors = ButtonDefaults.buttonColors(containerColor = TealPrimary)
                         ) {
-                            Icon(Icons.Default.CheckCircle, contentDescription = null)
+                            Icon(Icons.Default.PhotoCamera, contentDescription = null)
                             Text("  Done")
                         }
+                    }
+                    // Alternatif pilih foto dari galeri untuk bukti selesai
+                    TextButton(onClick = { donePhotoPicker.launch("image/*") }, modifier = Modifier.align(Alignment.CenterHorizontally)) {
+                        Icon(Icons.Default.Image, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Text("  atau pilih foto dari galeri")
                     }
                 }
                 "Done" -> {
@@ -290,7 +322,7 @@ fun WorkOrderDetailScreen(
                                 Text("Dikerjakan oleh: ${item.acceptedBy}", style = MaterialTheme.typography.bodySmall, color = Gray500)
                             }
                             if (item.doneAt != null) {
-                                Text("Selesai pada: ${formatDate(item.doneAt)}", style = MaterialTheme.typography.bodySmall, color = Gray500)
+                                Text("Selesai pada: ${formatDateTime(item.doneAt)}", style = MaterialTheme.typography.bodySmall, color = Gray500)
                             }
                         }
                     }
@@ -354,7 +386,7 @@ private fun StatusPillDetail(status: String) {
     val (bg, text) = when (status) {
         "Done" -> Color(0xFFE0F2F1) to DoneColor
         "Pending" -> Color(0xFFFFF8E1) to PendingColor
-        "Accepted" -> Color(0xFFE3F2FD) to AcceptedColor
+        "On Progress" -> Color(0xFFE3F2FD) to AcceptedColor
         "Open" -> Color(0xFFF0F2F2) to NewColor
         else -> Color(0xFFF0F2F2) to Gray500
     }
