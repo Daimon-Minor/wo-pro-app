@@ -87,7 +87,7 @@ fun ManageBlocksScreen(
         } else {
             LazyColumn(Modifier.fillMaxSize().padding(padding), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 items(blocks, key = { it.id }) { b ->
-                    BlockCard(b, onEdit = { editBlock = it; showDialog = true }, onDelete = {
+                    BlockCard(b, onEdit = { editBlock = b; showDialog = true }, onDelete = {
                         CoroutineScope(Dispatchers.IO).launch { repo.deleteBlock(b) }
                     })
                 }
