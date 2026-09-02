@@ -51,7 +51,7 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "wopro.db"
                 )
-                    .openHelperFactory(SupportFactory(passphrase.toCharArray()))
+                    .openHelperFactory(SupportFactory(passphrase.toByteArray()))
                     .fallbackToDestructiveMigration()
                     .build()
                     .also { INSTANCE = it }

@@ -11,6 +11,7 @@ import com.wopro.app.data.local.TeamEntity
 import com.wopro.app.data.local.UserEntity
 import com.wopro.app.data.local.WorkOrderEntity
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 
 /**
  * Single source of truth for the UI. In demo mode all data lives in the
