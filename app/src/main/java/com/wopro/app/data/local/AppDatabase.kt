@@ -25,7 +25,7 @@ import net.sqlcipher.database.SupportFactory
         LocationEntity::class,
         LogbookEntity::class
     ],
-    version = 5,
+    version = 6,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {

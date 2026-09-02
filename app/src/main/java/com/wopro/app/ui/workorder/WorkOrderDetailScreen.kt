@@ -2,7 +2,9 @@ package com.wopro.app.ui.workorder
 
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -11,13 +13,18 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.AccessTime
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.PhotoCamera
+import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.PriorityHigh
 import androidx.compose.material.icons.filled.Send
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -41,25 +48,34 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.wopro.app.WOProApp
 import com.wopro.app.data.local.WorkOrderEntity
 import com.wopro.app.ui.VMFactory
-import com.wopro.app.ui.components.LabeledRow
-import com.wopro.app.ui.components.LoadingBox
 import com.wopro.app.ui.components.SectionHeader
-import com.wopro.app.ui.components.StatusChip
 import com.wopro.app.ui.home.formatDate
-import com.wopro.app.ui.home.statusColor
+import com.wopro.app.ui.theme.Gray500
+import com.wopro.app.ui.theme.TealPrimary
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+
+private val DoneColor = TealPrimary
+private val NewColor = Gray500
+private val PendingColor = Color(0xFFFFB300)
+private val AcceptedColor = Color(0xFF1976D2)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -77,14 +93,12 @@ fun WorkOrderDetailScreen(
     var loading by remember { mutableStateOf(true) }
     var currentUserName by remember { mutableStateOf("") }
 
-    // Dialog pending reason
     var showPendingDialog by remember { mutableStateOf(false) }
     var pendingReason by remember { mutableStateOf("") }
 
-    // Photo picker untuk Done
     val donePhotoPicker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
         if (uri != null && wo != null) {
-            kotlinx.coroutines.CoroutineScope(Dispatchers.IO).launch {
+            CoroutineScope(Dispatchers.IO).launch {
                 repo.setDone(wo!!, uri.toString())
                 wo = repo.getWorkOrder(woId)
             }
@@ -104,97 +118,133 @@ fun WorkOrderDetailScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Work Order Detail", fontWeight = FontWeight.Bold) },
+                title = { Text("WO. $woId", fontWeight = FontWeight.Bold, color = TealPrimary) },
                 navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back") } }
             )
         }
     ) { padding ->
-        if (loading) { LoadingBox(Modifier.fillMaxSize().padding(padding)); return@Scaffold }
+        if (loading) { Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) { androidx.compose.material3.CircularProgressIndicator() }; return@Scaffold }
         val item = wo ?: return@Scaffold
 
         Column(
-            Modifier.fillMaxSize().padding(padding).padding(16.dp).verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+            Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState()).padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            // Header
-            Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
+            // Header card
+            Card(
+                Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(14.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.White),
+                elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+            ) {
                 Column(Modifier.padding(16.dp)) {
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text(item.title, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
-                        StatusChip(item.status, statusColor(item.status))
+                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            item.title,
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.weight(1f)
+                        )
+                        StatusPillDetail(item.status)
                     }
-                    Spacer(Modifier.height(8.dp))
-                    LabeledRow("Category", item.category)
-                    LabeledRow("Priority", item.priority)
-                    LabeledRow("Location", item.location)
-                    if (item.block.isNotBlank()) {
-                        LabeledRow("Blok / Kamar", "${item.block}-${item.roomNumber}")
+                    Spacer(Modifier.height(12.dp))
+                    // Foto besar jika ada
+                    if (item.photoUri != null) {
+                        AsyncImage(
+                            model = item.photoUri,
+                            contentDescription = null,
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier.fillMaxWidth().height(180.dp).clip(RoundedCornerShape(10.dp))
+                        )
+                        Spacer(Modifier.height(12.dp))
                     }
-                    LabeledRow("Due", formatDate(item.dueDate))
+                    DetailRowDetail(Icons.Default.LocationOn, locationTextDetail(item))
+                    DetailRowDetail(Icons.Default.Person, "by: ${item.createdBy.ifBlank { "-" }}")
+                    DetailRowDetail(Icons.Default.AccessTime, "Dibuat: ${formatDate(item.createdAt)}")
+                    DetailRowDetail(Icons.Default.PriorityHigh, item.priority, textColor = priorityColorDetail(item.priority))
+                    if (item.dueDate != null) {
+                        DetailRowDetail(Icons.Default.AccessTime, "Due: ${formatDate(item.dueDate)}")
+                    }
                 }
             }
 
             // Keterangan
             if (item.description.isNotBlank()) {
                 SectionHeader("Keterangan")
-                Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)) {
-                    Column(Modifier.padding(16.dp)) {
+                Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = Color(0xFFF6F8F8))) {
+                    Column(Modifier.padding(14.dp)) {
                         Text(item.description)
-                        // Edit keterangan
-                        TextButton(onClick = onEdit, modifier = Modifier.padding(top = 8.dp)) {
-                            Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(16.dp))
-                            Text("  Edit Keterangan", style = MaterialTheme.typography.bodySmall)
+                        TextButton(onClick = onEdit, modifier = Modifier.padding(top = 4.dp)) {
+                            Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(16.dp), tint = TealPrimary)
+                            Text("  Edit Keterangan", color = TealPrimary)
                         }
                     }
                 }
             }
 
-            // Foto lampiran saat create
-            if (item.photoUri != null) {
-                SectionHeader("Foto Lampiran")
+            // Foto saat done
+            if (item.status == "Done" && item.donePhotoUri != null) {
+                SectionHeader("Foto Saat Selesai")
                 AsyncImage(
-                    model = item.photoUri,
-                    contentDescription = "Lampiran WO",
+                    model = item.donePhotoUri,
+                    contentDescription = null,
                     contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxWidth().height(180.dp)
+                    modifier = Modifier.fillMaxWidth().height(200.dp).clip(RoundedCornerShape(10.dp))
                 )
             }
 
-            // Status flow
+            // Activity log
+            if (item.activityLog.isNotBlank()) {
+                SectionHeader("Riwayat / Note")
+                Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = Color(0xFFF6F8F8))) {
+                    Column(Modifier.padding(14.dp)) {
+                        item.activityLog.split("\n").filter { it.isNotBlank() }.forEach { line ->
+                            Row(Modifier.padding(vertical = 3.dp), verticalAlignment = Alignment.Top) {
+                                Icon(
+                                    Icons.Default.AccessTime,
+                                    contentDescription = null,
+                                    tint = TealPrimary,
+                                    modifier = Modifier.size(13.dp).padding(top = 2.dp)
+                                )
+                                Spacer(Modifier.width(6.dp))
+                                Text(line.trim(), style = MaterialTheme.typography.bodySmall, fontSize = 12.sp)
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Action flow
             when (item.status) {
                 "Open" -> {
-                    Spacer(Modifier.height(8.dp))
+                    Spacer(Modifier.height(6.dp))
                     Button(
                         onClick = {
-                            kotlinx.coroutines.CoroutineScope(Dispatchers.IO).launch {
+                            CoroutineScope(Dispatchers.IO).launch {
                                 repo.acceptWorkOrder(item, currentUserName.ifBlank { "User" })
                                 wo = repo.getWorkOrder(woId)
                             }
                         },
                         modifier = Modifier.fillMaxWidth().height(52.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                        colors = ButtonDefaults.buttonColors(containerColor = AcceptedColor)
                     ) {
                         Icon(Icons.Default.Send, contentDescription = null)
                         Text("  Accept Work Order", style = MaterialTheme.typography.titleMedium)
                     }
                 }
                 "Accepted" -> {
-                    Spacer(Modifier.height(8.dp))
-                    LabeledRow("Diterima oleh", item.acceptedBy.ifBlank { "-" })
-                    Spacer(Modifier.height(8.dp))
-                    // Tombol Pending + Done
+                    Spacer(Modifier.height(6.dp))
+                    DetailRowDetail(Icons.Default.Person, "Diterima oleh: ${item.acceptedBy.ifBlank { "-" }}")
+                    Spacer(Modifier.height(6.dp))
                     Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
-                        OutlinedButton(
-                            onClick = { showPendingDialog = true },
-                            modifier = Modifier.weight(1f).height(52.dp)
-                        ) {
+                        OutlinedButton(onClick = { showPendingDialog = true }, modifier = Modifier.weight(1f).height(52.dp)) {
                             Icon(Icons.Default.Edit, contentDescription = null)
                             Text("  Pending")
                         }
                         Button(
                             onClick = { donePhotoPicker.launch("image/*") },
                             modifier = Modifier.weight(1f).height(52.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                            colors = ButtonDefaults.buttonColors(containerColor = TealPrimary)
                         ) {
                             Icon(Icons.Default.CheckCircle, contentDescription = null)
                             Text("  Done")
@@ -202,17 +252,16 @@ fun WorkOrderDetailScreen(
                     }
                 }
                 "Pending" -> {
-                    Spacer(Modifier.height(8.dp))
+                    Spacer(Modifier.height(6.dp))
                     SectionHeader("Alasan Pending")
-                    Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer)) {
-                        Text(item.pendingReason.ifBlank { "-" }, Modifier.padding(16.dp))
+                    Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = Color(0xFFFFF8E1))) {
+                        Text(item.pendingReason.ifBlank { "-" }, Modifier.padding(14.dp))
                     }
-                    LabeledRow("Diterima oleh", item.acceptedBy.ifBlank { "-" })
-                    Spacer(Modifier.height(8.dp))
+                    Spacer(Modifier.height(6.dp))
                     Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
                         OutlinedButton(
                             onClick = {
-                                kotlinx.coroutines.CoroutineScope(Dispatchers.IO).launch {
+                                CoroutineScope(Dispatchers.IO).launch {
                                     repo.resumeWorkOrder(item)
                                     wo = repo.getWorkOrder(woId)
                                 }
@@ -225,7 +274,7 @@ fun WorkOrderDetailScreen(
                         Button(
                             onClick = { donePhotoPicker.launch("image/*") },
                             modifier = Modifier.weight(1f).height(52.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                            colors = ButtonDefaults.buttonColors(containerColor = TealPrimary)
                         ) {
                             Icon(Icons.Default.CheckCircle, contentDescription = null)
                             Text("  Done")
@@ -233,40 +282,31 @@ fun WorkOrderDetailScreen(
                     }
                 }
                 "Done" -> {
-                    Spacer(Modifier.height(8.dp))
-                    SectionHeader("Diselesaikan oleh")
-                    LabeledRow("Nama", item.acceptedBy.ifBlank { "-" })
-                    if (item.doneAt != null) {
-                        LabeledRow("Selesai pada", formatDate(item.doneAt))
-                    }
-                    if (item.donePhotoUri != null) {
-                        SectionHeader("Foto Saat Selesai")
-                        AsyncImage(
-                            model = item.donePhotoUri,
-                            contentDescription = "Foto Done",
-                            contentScale = ContentScale.Crop,
-                            modifier = Modifier.fillMaxWidth().height(200.dp)
-                        )
+                    Spacer(Modifier.height(6.dp))
+                    Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = Color(0xFFE0F2F1))) {
+                        Column(Modifier.padding(14.dp)) {
+                            Text("✔ Selesai", color = DoneColor, fontWeight = FontWeight.Bold)
+                            if (item.acceptedBy.isNotBlank()) {
+                                Text("Dikerjakan oleh: ${item.acceptedBy}", style = MaterialTheme.typography.bodySmall, color = Gray500)
+                            }
+                            if (item.doneAt != null) {
+                                Text("Selesai pada: ${formatDate(item.doneAt)}", style = MaterialTheme.typography.bodySmall, color = Gray500)
+                            }
+                        }
                     }
                 }
             }
 
-            Spacer(Modifier.height(16.dp))
-            HorizontalDivider()
-            LabeledRow("Dibuat oleh", item.createdBy.ifBlank { "-" })
-            LabeledRow("Dibuat pada", formatDate(item.createdAt))
-
             if (item.status != "Done") {
-                // Edit only if not done
                 Button(onClick = onEdit, modifier = Modifier.fillMaxWidth().height(52.dp)) {
                     Icon(Icons.Default.Edit, contentDescription = null)
                     Text("  Edit Work Order")
                 }
             }
+            Spacer(Modifier.height(16.dp))
         }
     }
 
-    // Dialog alasan Pending
     if (showPendingDialog) {
         AlertDialog(
             onDismissRequest = { showPendingDialog = false },
@@ -285,7 +325,7 @@ fun WorkOrderDetailScreen(
                     onClick = {
                         if (pendingReason.isNotBlank()) {
                             showPendingDialog = false
-                            kotlinx.coroutines.CoroutineScope(Dispatchers.IO).launch {
+                            CoroutineScope(Dispatchers.IO).launch {
                                 repo.setPending(wo!!, pendingReason.trim())
                                 wo = repo.getWorkOrder(woId)
                             }
@@ -293,15 +333,47 @@ fun WorkOrderDetailScreen(
                         }
                     },
                     enabled = pendingReason.isNotBlank()
-                ) {
-                    Text("Confirm")
-                }
+                ) { Text("Confirm") }
             },
             dismissButton = {
-                TextButton(onClick = { showPendingDialog = false; pendingReason = "" }) {
-                    Text("Cancel")
-                }
+                TextButton(onClick = { showPendingDialog = false; pendingReason = "" }) { Text("Cancel") }
             }
         )
     }
+}
+
+private fun locationTextDetail(wo: WorkOrderEntity): String = when {
+    wo.block.isNotBlank() && wo.roomNumber > 0 -> "${wo.block}-${wo.roomNumber}"
+    wo.block.isNotBlank() -> wo.block
+    wo.location.isNotBlank() -> wo.location
+    else -> "-"
+}
+
+@Composable
+private fun StatusPillDetail(status: String) {
+    val (bg, text) = when (status) {
+        "Done" -> Color(0xFFE0F2F1) to DoneColor
+        "Pending" -> Color(0xFFFFF8E1) to PendingColor
+        "Accepted" -> Color(0xFFE3F2FD) to AcceptedColor
+        "Open" -> Color(0xFFF0F2F2) to NewColor
+        else -> Color(0xFFF0F2F2) to Gray500
+    }
+    Box(Modifier.background(bg, RoundedCornerShape(12.dp)).padding(horizontal = 14.dp, vertical = 6.dp)) {
+        Text(status, color = text, fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
+    }
+}
+
+@Composable
+private fun DetailRowDetail(icon: ImageVector, text: String, textColor: Color = Color(0xFF3A4143)) {
+    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(vertical = 3.dp)) {
+        Icon(icon, contentDescription = null, tint = TealPrimary, modifier = Modifier.size(16.dp))
+        Spacer(Modifier.width(8.dp))
+        Text(text, color = textColor, fontSize = 13.sp, maxLines = 2, overflow = TextOverflow.Ellipsis)
+    }
+}
+
+private fun priorityColorDetail(p: String): Color = when (p) {
+    "High", "Critical" -> Color(0xFFE53935)
+    "Medium" -> Color(0xFFFFB300)
+    else -> Gray500
 }

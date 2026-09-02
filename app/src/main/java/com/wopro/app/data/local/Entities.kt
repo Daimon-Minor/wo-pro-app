@@ -37,7 +37,8 @@ data class WorkOrderEntity(
     val acceptedAt: Long? = null,
     val pendingReason: String = "",
     val donePhotoUri: String? = null,
-    val doneAt: Long? = null
+    val doneAt: Long? = null,
+    val activityLog: String = ""
 )
 
 @Entity(tableName = "projects")

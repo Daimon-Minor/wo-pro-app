@@ -58,7 +58,17 @@ class WOProRepository(private val db: AppDatabase) {
     suspend fun saveWorkOrder(wo: WorkOrderEntity) {
         if (wo.id == 0L) {
             val assignedTeamId = findTeamIdFor(wo.block, wo.roomNumber)
-            val id = db.workOrderDao().insert(wo.copy(assignedTeamId = assignedTeamId))
+            val now = System.currentTimeMillis()
+            val creator = wo.createdBy.ifBlank { "User" }
+            val initialLog = "${fmtLog(now)} -> Created ($creator)"
+            val id = db.workOrderDao().insert(
+                wo.copy(
+                    assignedTeamId = assignedTeamId,
+                    activityLog = wo.activityLog.ifBlank { initialLog },
+                    createdAt = now,
+                    updatedAt = now
+                )
+            )
             notifyForWorkOrder(wo.copy(id = id, assignedTeamId = assignedTeamId))
         } else {
             db.workOrderDao().update(wo)
@@ -72,28 +82,32 @@ class WOProRepository(private val db: AppDatabase) {
     // ---- Alur kerja status ----
     suspend fun acceptWorkOrder(wo: WorkOrderEntity, byName: String) {
         val now = System.currentTimeMillis()
+        val log = wo.activityLog + "\n${fmtLog(now)} -> Accepted ($byName)"
         db.workOrderDao().update(
-            wo.copy(status = "Accepted", acceptedBy = byName, acceptedAt = now, updatedAt = now)
+            wo.copy(status = "Accepted", acceptedBy = byName, acceptedAt = now, updatedAt = now, activityLog = log)
         )
     }
 
     suspend fun setPending(wo: WorkOrderEntity, reason: String) {
         val now = System.currentTimeMillis()
+        val log = wo.activityLog + "\n${fmtLog(now)} -> Pending: $reason"
         db.workOrderDao().update(
-            wo.copy(status = "Pending", pendingReason = reason, updatedAt = now)
+            wo.copy(status = "Pending", pendingReason = reason, updatedAt = now, activityLog = log)
         )
     }
 
     suspend fun setDone(wo: WorkOrderEntity, photoUri: String?) {
         val now = System.currentTimeMillis()
+        val log = wo.activityLog + "\n${fmtLog(now)} -> Done: photo attached"
         db.workOrderDao().update(
-            wo.copy(status = "Done", donePhotoUri = photoUri, doneAt = now, updatedAt = now)
+            wo.copy(status = "Done", donePhotoUri = photoUri, doneAt = now, updatedAt = now, activityLog = log)
         )
     }
 
     suspend fun resumeWorkOrder(wo: WorkOrderEntity) {
         val now = System.currentTimeMillis()
-        db.workOrderDao().update(wo.copy(status = "Accepted", updatedAt = now))
+        val log = wo.activityLog + "\n${fmtLog(now)} -> Resumed to Accepted"
+        db.workOrderDao().update(wo.copy(status = "Accepted", updatedAt = now, activityLog = log))
     }
 
     // ---- Export laporan ----
@@ -224,6 +238,16 @@ class WOProRepository(private val db: AppDatabase) {
         if (e.id == 0L) db.logbookDao().insert(e) else db.logbookDao().update(e)
     }
     suspend fun deleteLogbookEntry(e: LogbookEntity) = db.logbookDao().delete(e)
+
+    /** Format timestamp untuk activity log: "02 Sep 2026, 18:31". */
+    private fun fmtLog(epoch: Long): String {
+        return try {
+            val sdf = java.text.SimpleDateFormat("dd MMM yyyy, HH:mm", java.util.Locale.ENGLISH)
+            sdf.format(java.util.Date(epoch))
+        } catch (t: Throwable) {
+            epoch.toString()
+        }
+    }
 
     // ---- Notifications ----
     fun observeNotifications(): Flow<List<NotificationEntity>> = db.notificationDao().observeAll()
