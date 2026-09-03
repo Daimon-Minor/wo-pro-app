@@ -3,6 +3,7 @@ package com.wopro.app.ui.workorder
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -66,6 +67,7 @@ import coil.compose.AsyncImage
 import com.wopro.app.WOProApp
 import com.wopro.app.data.local.WorkOrderEntity
 import com.wopro.app.ui.VMFactory
+import com.wopro.app.ui.components.PhotoViewerDialog
 import com.wopro.app.ui.components.SectionHeader
 import com.wopro.app.ui.components.rememberCameraLauncher
 import com.wopro.app.ui.home.formatDateTime
@@ -99,6 +101,7 @@ fun WorkOrderDetailScreen(
 
     var showPendingDialog by remember { mutableStateOf(false) }
     var pendingReason by remember { mutableStateOf("") }
+    var selectedPhoto by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
 
     val donePhotoPicker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
@@ -165,13 +168,17 @@ fun WorkOrderDetailScreen(
                         StatusPillDetail(item.status)
                     }
                     Spacer(Modifier.height(12.dp))
-                    // Foto besar jika ada
+                    // Foto besar jika ada — tap untuk lihat full-screen
                     if (item.photoUri != null) {
                         AsyncImage(
                             model = item.photoUri,
                             contentDescription = null,
                             contentScale = ContentScale.Crop,
-                            modifier = Modifier.fillMaxWidth().height(180.dp).clip(RoundedCornerShape(10.dp))
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(180.dp)
+                                .clip(RoundedCornerShape(10.dp))
+                                .clickable { selectedPhoto = item.photoUri }
                         )
                         Spacer(Modifier.height(12.dp))
                     }
@@ -205,14 +212,18 @@ fun WorkOrderDetailScreen(
                 }
             }
 
-            // Foto saat done
+            // Foto saat done — tap untuk lihat full-screen
             if (item.status == "Done" && item.donePhotoUri != null) {
                 SectionHeader("Foto Saat Selesai")
                 AsyncImage(
                     model = item.donePhotoUri,
                     contentDescription = null,
                     contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxWidth().height(200.dp).clip(RoundedCornerShape(10.dp))
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(200.dp)
+                        .clip(RoundedCornerShape(10.dp))
+                        .clickable { selectedPhoto = item.donePhotoUri }
                 )
             }
 
@@ -381,6 +392,11 @@ fun WorkOrderDetailScreen(
                 TextButton(onClick = { showPendingDialog = false; pendingReason = "" }) { Text("Cancel") }
             }
         )
+    }
+
+    // Tampilkan foto full-screen saat foto di tap
+    selectedPhoto?.let { uri ->
+        PhotoViewerDialog(imageUri = uri, onDismiss = { selectedPhoto = null })
     }
 }
 

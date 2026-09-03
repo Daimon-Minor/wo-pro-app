@@ -66,6 +66,7 @@ import com.wopro.app.WOProApp
 import com.wopro.app.data.local.WorkOrderEntity
 import com.wopro.app.ui.VMFactory
 import com.wopro.app.ui.components.EmptyState
+import com.wopro.app.ui.components.PhotoViewerDialog
 import com.wopro.app.ui.home.formatDateTime
 import com.wopro.app.ui.theme.Gray500
 import com.wopro.app.ui.theme.TealPrimary
@@ -95,6 +96,7 @@ fun WorkOrderListScreen(
     val vm: WorkOrderViewModel = viewModel(factory = factory)
     val ui by vm.ui.collectAsStateWithLifecycle()
     var currentUserName by remember { mutableStateOf("") }
+    var selectedPhoto by remember { mutableStateOf<String?>(null) }
 
     // Set current user name once
     LaunchedEffect(Unit) {
@@ -196,12 +198,18 @@ fun WorkOrderListScreen(
                     WoCardRef(
                         wo = wo,
                         onClick = { onDetail(wo.id) },
-                        onAccept = { accept(wo) }
+                        onAccept = { accept(wo) },
+                        onImageClick = { selectedPhoto = it }
                     )
                 }
                 item { Spacer(Modifier.height(88.dp)) }
             }
         }
+    }
+
+    // Tampilkan foto full-screen saat thumbnail diklik
+    selectedPhoto?.let { uri ->
+        PhotoViewerDialog(imageUri = uri, onDismiss = { selectedPhoto = null })
     }
 }
 
@@ -234,7 +242,7 @@ private fun FilterChipWo(text: String, selected: Boolean, onSelect: () -> Unit) 
 }
 
 @Composable
-private fun WoCardRef(wo: WorkOrderEntity, onClick: () -> Unit, onAccept: () -> Unit) {
+private fun WoCardRef(wo: WorkOrderEntity, onClick: () -> Unit, onAccept: () -> Unit, onImageClick: (String) -> Unit) {
     Card(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 3.dp),
         onClick = onClick,
@@ -244,16 +252,22 @@ private fun WoCardRef(wo: WorkOrderEntity, onClick: () -> Unit, onAccept: () -> 
     ) {
         Column {
             Row(Modifier.fillMaxWidth().padding(10.dp)) {
-                // Thumbnail
+                // Thumbnail — ContentScale.Fit agar foto tampil utuh; tap untuk lihat detail
                 Box(
-                    Modifier.size(56.dp).clip(RoundedCornerShape(8.dp)).background(Color(0xFFF0F2F2)),
+                    Modifier
+                        .size(64.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(Color(0xFFF0F2F2))
+                        .clickable {
+                            wo.photoUri?.let(onImageClick)
+                        },
                     contentAlignment = Alignment.Center
                 ) {
                     if (wo.photoUri != null) {
                         AsyncImage(
                             model = wo.photoUri,
                             contentDescription = null,
-                            contentScale = ContentScale.Crop,
+                            contentScale = ContentScale.Fit,
                             modifier = Modifier.fillMaxSize()
                         )
                     } else {
@@ -261,10 +275,10 @@ private fun WoCardRef(wo: WorkOrderEntity, onClick: () -> Unit, onAccept: () -> 
                     }
                     if (wo.status == "Done") {
                         Box(
-                            Modifier.fillMaxSize().background(Color(0x99007A6B)),
+                            Modifier.fillMaxSize().background(Color(0x33007A6B)),
                             contentAlignment = Alignment.Center
                         ) {
-                            Icon(Icons.Default.CheckCircle, contentDescription = null, tint = Color.White, modifier = Modifier.size(28.dp))
+                            Icon(Icons.Default.CheckCircle, contentDescription = null, tint = Color.White, modifier = Modifier.size(26.dp))
                         }
                     }
                 }
