@@ -1,7 +1,18 @@
 package com.wopro.app.ui.navigation
 
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -37,6 +48,8 @@ import com.wopro.app.ui.location.ManageLocationsScreen
 import com.wopro.app.ui.logbook.LogbookListScreen
 import com.wopro.app.ui.logbook.LogbookFormScreen
 import com.wopro.app.ui.block.ManageBlocksScreen
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 @Composable
 fun AppNavHost() {
@@ -45,13 +58,41 @@ fun AppNavHost() {
     val app = context.applicationContext as WOProApp
     val repo = app.container.repository
     val encryption = app.container.encryptionManager
-    val authVm = AuthViewModel(repo, encryption)
-    val authFactory = AuthVMFactory(repo, encryption)
-    val vmFactory = VMFactory(repo)
+    val authVm = remember { AuthViewModel(repo, encryption) }
+    val authFactory = remember { AuthVMFactory(repo, encryption) }
+    val vmFactory = remember { VMFactory(repo) }
 
-    val start = if (encryption.isLoggedIn()) Routes.MAIN else Routes.LOGIN
+    var checked by remember { mutableStateOf(false) }
+    var startDestination by remember { mutableStateOf(Routes.LOGIN) }
 
-    NavHost(navController = navController, startDestination = start) {
+    // Cold-start session: jika token + user valid, langsung ke MAIN (tidak perlu login lagi).
+    LaunchedEffect(Unit) {
+        if (encryption.isLoggedIn()) {
+            val id = encryption.getUserId()
+            if (id > 0) {
+                val user = withContext(Dispatchers.IO) { repo.getUser(id) }
+                if (user != null) {
+                    authVm.restoreSession(user)
+                    startDestination = Routes.MAIN
+                } else {
+                    // User sudah tidak ada (DB dimigrasi) -> bersihkan sesi
+                    encryption.clearSession()
+                }
+            } else {
+                encryption.clearSession()
+            }
+        }
+        checked = true
+    }
+
+    if (!checked) {
+        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            CircularProgressIndicator()
+        }
+        return
+    }
+
+    NavHost(navController = navController, startDestination = startDestination) {
 
         // ---- Auth flow ----
         composable(Routes.LOGIN) {

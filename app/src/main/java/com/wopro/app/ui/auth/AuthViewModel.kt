@@ -145,4 +145,9 @@ class AuthViewModel(
         encryption.clearSession()
         _ui.value = AuthUiState()
     }
+
+    /** Restore session on cold start: verifies token AND user exists in DB. */
+    fun restoreSession(user: com.wopro.app.data.local.UserEntity) {
+        _ui.value = AuthUiState(loggedInUser = user)
+    }
 }

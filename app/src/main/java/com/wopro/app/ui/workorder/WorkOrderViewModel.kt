@@ -28,7 +28,12 @@ class WorkOrderViewModel(private val repo: WOProRepository) : ViewModel() {
 
     val ui: StateFlow<WoListState> =
         combine(repo.observeWorkOrders(), filter, tab, search, currentUserName) { wos, f, t, s, user ->
-            val byStatus = if (f == "All") wos else wos.filter { it.status == f }
+            // Filter status: "New" = WO baru (Open / belum di-accept), sisanya match status asli
+            val byStatus = when (f) {
+                "All" -> wos
+                "New" -> wos.filter { it.status == "Open" }
+                else -> wos.filter { it.status == f }
+            }
             val byTab = if (t == "Out") {
                 byStatus.filter { it.createdBy.equals(user, ignoreCase = true) || (user.isBlank() && it.createdBy.isBlank()) }
             } else byStatus

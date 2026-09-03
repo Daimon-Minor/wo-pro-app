@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -26,6 +27,8 @@ import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material.icons.filled.PriorityHigh
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.AssistChip
+import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -75,6 +78,8 @@ private val DoneColor = TealPrimary
 private val NewColor = Gray500
 private val PendingColor = Color(0xFFFFB300) // amber
 private val AcceptedColor = Color(0xFF1976D2) // blue
+
+private val filterOptions = listOf("All", "New", "On Progress", "Pending", "Done")
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -147,6 +152,15 @@ fun WorkOrderListScreen(
                         modifier = Modifier.weight(1f)
                     )
                 }
+                // Filter status: All / New (belum accept) / On Progress / Pending / Done
+                LazyRow(
+                    modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 8.dp, bottom = 4.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    items(filterOptions) { opt ->
+                        FilterChipWo(opt, selected = ui.filter == opt, onSelect = { vm.setFilter(opt) })
+                    }
+                }
             }
         },
         floatingActionButton = {
@@ -208,19 +222,31 @@ private fun TabButton(text: String, active: Boolean, onClick: () -> Unit) {
 }
 
 @Composable
+private fun FilterChipWo(text: String, selected: Boolean, onSelect: () -> Unit) {
+    val bg = if (selected) TealPrimary else Color(0xFFF0F2F2)
+    val textColor = if (selected) Color.White else Gray500
+    AssistChip(
+        onClick = onSelect,
+        label = { Text(text, color = textColor, fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal, fontSize = 13.sp) },
+        colors = AssistChipDefaults.assistChipColors(containerColor = bg),
+        border = null
+    )
+}
+
+@Composable
 private fun WoCardRef(wo: WorkOrderEntity, onClick: () -> Unit, onAccept: () -> Unit) {
     Card(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp),
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 3.dp),
         onClick = onClick,
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
     ) {
         Column {
-            Row(Modifier.fillMaxWidth().padding(12.dp)) {
+            Row(Modifier.fillMaxWidth().padding(10.dp)) {
                 // Thumbnail
                 Box(
-                    Modifier.size(76.dp).clip(RoundedCornerShape(8.dp)).background(Color(0xFFF0F2F2)),
+                    Modifier.size(56.dp).clip(RoundedCornerShape(8.dp)).background(Color(0xFFF0F2F2)),
                     contentAlignment = Alignment.Center
                 ) {
                     if (wo.photoUri != null) {
@@ -238,47 +264,53 @@ private fun WoCardRef(wo: WorkOrderEntity, onClick: () -> Unit, onAccept: () -> 
                             Modifier.fillMaxSize().background(Color(0x99007A6B)),
                             contentAlignment = Alignment.Center
                         ) {
-                            Icon(Icons.Default.CheckCircle, contentDescription = null, tint = Color.White, modifier = Modifier.size(32.dp))
+                            Icon(Icons.Default.CheckCircle, contentDescription = null, tint = Color.White, modifier = Modifier.size(28.dp))
                         }
                     }
                 }
-                Spacer(Modifier.width(12.dp))
+                Spacer(Modifier.width(10.dp))
                 Column(Modifier.weight(1f)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
                             "WO. ${wo.id}",
                             style = MaterialTheme.typography.titleSmall,
                             fontWeight = FontWeight.Bold,
+                            fontSize = 14.sp,
                             modifier = Modifier.weight(1f)
                         )
                         StatusPill(wo.status)
                     }
-                    Spacer(Modifier.height(2.dp))
+                    Spacer(Modifier.height(1.dp))
                     Text(
                         wo.title,
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.Medium,
-                        maxLines = 2,
+                        fontSize = 13.sp,
+                        maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
-                    Spacer(Modifier.height(6.dp))
+                    Spacer(Modifier.height(2.dp))
                     DetailRow(Icons.Default.LocationOn, locationText(wo))
                     DetailRow(Icons.Default.Person, "Dibuat oleh: ${wo.createdBy.ifBlank { "-" }}")
                     DetailRow(Icons.Default.AccessTime, formatDateTime(wo.createdAt))
-                    DetailRow(Icons.Default.PriorityHigh, wo.priority, textColor = priorityColor(wo.priority))
+                    if (wo.priority.isNotBlank() && wo.priority != "Low") {
+                        DetailRow(Icons.Default.PriorityHigh, wo.priority, textColor = priorityColor(wo.priority))
+                    }
                 }
             }
             // Note / activity log
             if (wo.activityLog.isNotBlank()) {
-                val lastNotes = wo.activityLog.split("\n").takeLast(3)
-                Column(Modifier.padding(horizontal = 12.dp, vertical = 2.dp)) {
-                    Text("Note:", fontWeight = FontWeight.SemiBold, color = Gray500, fontSize = 12.sp)
+                val lastNotes = wo.activityLog.split("\n").takeLast(2)
+                Column(Modifier.padding(start = 10.dp, end = 10.dp, top = 0.dp, bottom = 4.dp)) {
+                    Text("Note:", fontWeight = FontWeight.SemiBold, color = Gray500, fontSize = 11.sp)
                     lastNotes.forEach { line ->
                         Text(
                             line.trim(),
                             color = Color(0xFF4A5457),
                             fontSize = 11.sp,
-                            lineHeight = 16.sp
+                            lineHeight = 15.sp,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
                         )
                     }
                 }
@@ -287,11 +319,11 @@ private fun WoCardRef(wo: WorkOrderEntity, onClick: () -> Unit, onAccept: () -> 
             if (wo.status == "Open") {
                 Button(
                     onClick = onAccept,
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp).padding(top = 8.dp, bottom = 10.dp).height(40.dp),
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 10.dp).padding(top = 0.dp, bottom = 8.dp).height(36.dp),
                     shape = RoundedCornerShape(8.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = AcceptedColor)
                 ) {
-                    Text("Accept", color = Color.White, fontWeight = FontWeight.SemiBold)
+                    Text("Accept", color = Color.White, fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
                 }
             }
         }
