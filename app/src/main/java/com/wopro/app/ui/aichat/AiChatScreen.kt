@@ -36,37 +36,53 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.wopro.app.data.local.ChatMessageEntity
 import com.wopro.app.ui.VMFactory
 import com.wopro.app.ui.components.EmptyState
-import com.wopro.app.ui.components.LoadingBox
+import com.wopro.app.data.remote.AiApiClient
+import com.wopro.app.data.remote.ChatMessageDto
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import androidx.compose.ui.platform.LocalContext
-import com.wopro.app.WOProApp
-import kotlinx.coroutines.CoroutineScope
 
 class AiChatViewModel(repo: com.wopro.app.data.repository.WOProRepository) : androidx.lifecycle.ViewModel() {
     val ui = repo.observeChat()
     private val repoRef = repo
 
+    private val _loading = androidx.compose.runtime.mutableStateOf(false)
+    val loading: androidx.compose.runtime.State<Boolean> = _loading
+
     fun sendMessage(text: String) = kotlinx.coroutines.CoroutineScope(Dispatchers.IO).launch {
         repoRef.addChatMessage(ChatMessageEntity(role = "user", content = text))
-        // Demo: simple echo with a mock response
-        val response = demoResponse(text)
-        repoRef.addChatMessage(ChatMessageEntity(role = "assistant", content = response))
-    }
-
-    private fun demoResponse(query: String): String = when {
-        query.contains("hello", true) || query.contains("hi", true) -> "Hello! How can I help with your facility today?"
-        query.contains("energy", true) -> "Track energy readings in the Meters tab. Compare tariffs to optimise costs."
-        query.contains("wo", true) || query.contains("work order", true) -> "Create work orders in the Work Orders tab. Set priority and due dates."
-        query.contains("audit", true) -> "Use the Audit tab to run safety and compliance checklists."
-        query.contains("report", true) -> "Audit reports are saved locally. You can review them in the Audit tab."
-        query.contains("cooling", true) || query.contains("chiller", true) -> "Chiller readings are tracked in the Meters tab. Compare with tariff data."
-        else -> "I'm a demo assistant. I can help with basic questions about work orders, energy readings, and audits. Try: 'how to create a work order'?"
+        _loading.value = true
+        try {
+            // Kirim riwayat percakapan terakhir (max 10 pesan) + system prompt
+            val history = repoRef.observeChat().first().takeLast(10).map {
+                ChatMessageDto(role = it.role, content = it.content)
+            }
+            val reply = AiApiClient.chat(listOf(ChatMessageDto("system", SYSTEM_PROMPT)) + history)
+            repoRef.addChatMessage(ChatMessageEntity(role = "assistant", content = reply))
+        } catch (t: Throwable) {
+            repoRef.addChatMessage(
+                ChatMessageEntity(
+                    role = "assistant",
+                    content = "⚠️ Gagal menghubungi AI: ${t.message ?: "error tidak diketahui"}. Coba lagi nanti."
+                )
+            )
+        } finally {
+            _loading.value = false
+        }
     }
 
     fun clearChat() = kotlinx.coroutines.CoroutineScope(Dispatchers.IO).launch {
         repoRef.clearChat()
+    }
+
+    companion object {
+        private const val SYSTEM_PROMPT =
+            "Kamu adalah AI Assistant untuk aplikasi WO Pro (manajemen work order & fasilitas hotel). " +
+            "Bantu user membuat work order, memahami status (Open/On Progress/Pending/Done), " +
+            "memberi tips energi, dan menjawab pertanyaan facility management. " +
+            "Jawab singkat, jelas, dalam bahasa Indonesia (kecuali user pakai bahasa lain)."
     }
 }
 
@@ -75,6 +91,7 @@ class AiChatViewModel(repo: com.wopro.app.data.repository.WOProRepository) : and
 fun AiChatScreen(factory: VMFactory, onBack: (() -> Unit)? = null) {
     val vm: AiChatViewModel = viewModel(factory = factory)
     val messages by vm.ui.collectAsStateWithLifecycle(initialValue = emptyList())
+    val loading by vm.loading
     var input by remember { mutableStateOf("") }
 
     Scaffold(
@@ -95,7 +112,7 @@ fun AiChatScreen(factory: VMFactory, onBack: (() -> Unit)? = null) {
         }
     ) { padding ->
         Column(Modifier.fillMaxSize().padding(padding)) {
-            if (messages.isEmpty()) {
+            if (messages.isEmpty() && !loading) {
                 EmptyState("Ask me anything about facility management", Modifier.weight(1f))
             } else {
                 LazyColumn(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -115,6 +132,24 @@ fun AiChatScreen(factory: VMFactory, onBack: (() -> Unit)? = null) {
                                 modifier = Modifier.padding(14.dp),
                                 color = if (isUser) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface
                             )
+                        }
+                    }
+                    if (loading) {
+                        item {
+                            Card(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp, vertical = 4.dp)
+                                    .padding(end = 48.dp),
+                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                            ) {
+                                Text(
+                                    "AI sedang mengetik…",
+                                    modifier = Modifier.padding(14.dp),
+                                    color = MaterialTheme.colorScheme.outline,
+                                    style = MaterialTheme.typography.bodyMedium
+                                )
+                            }
                         }
                     }
                 }
@@ -137,7 +172,7 @@ fun AiChatScreen(factory: VMFactory, onBack: (() -> Unit)? = null) {
                             input = ""
                         }
                     },
-                    enabled = input.isNotBlank()
+                    enabled = input.isNotBlank() && !loading
                 ) {
                     Icon(Icons.Default.Send, contentDescription = "Send")
                 }
